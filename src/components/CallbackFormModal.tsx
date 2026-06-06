@@ -31,7 +31,6 @@ export default function CallbackFormModal({
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof CallbackRequest, string>>>({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validate = (): boolean => {
@@ -83,13 +82,22 @@ export default function CallbackFormModal({
       const message = formatWhatsAppMessage(formData);
       const url = `https://api.whatsapp.com/send?phone=919211429635&text=${encodeURIComponent(message)}`;
       
-      // Redirect to WhatsApp in a new tab, leaving original page intact
-      window.open(url, "_blank");
+      // 1. Immediately launch the pre-filled WordPress thank-you page in a new tab.
+      // This is a direct user-initiated click event, so it is fully authorized by the browser and won't be blocked.
+      // This allows the Meta Ads Manager pixel to record the conversion on load of the thank-you page.
+      try {
+        window.open("https://renowix.in/thank-you-page/", "_blank");
+      } catch (err) {
+        console.error("Failed to open thank-you page:", err);
+      }
       
+      // 2. Introduce a deliberate 3-second delay so that the user and the Meta Ads Pixel can fully process the thank-you page,
+      // then seamlessly forward the active browser tab to the pre-filled WhatsApp API link.
       setTimeout(() => {
         setIsSubmitting(false);
-        setIsSubmitted(true);
-      }, 500);
+        window.location.href = url;
+        onClose();
+      }, 3000);
     }
   };
 
@@ -107,7 +115,6 @@ export default function CallbackFormModal({
       callbackTime: "Anytime (9 AM - 9 PM)"
     });
     setErrors({});
-    setIsSubmitted(false);
     onClose();
   };
 
@@ -155,49 +162,10 @@ export default function CallbackFormModal({
 
             {/* Inner Content */}
             <div className="p-6 md:p-8 max-h-[75vh] overflow-y-auto">
-              {isSubmitted ? (
-                <div id="submission-success-view" className="py-6 text-center space-y-4">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 border border-emerald-200 animate-bounce">
-                    <CheckCircle className="h-10 w-10" />
-                  </div>
-                  <h3 className="font-display text-2xl font-bold text-slate-900">Forwarding to WhatsApp...</h3>
-                  <div className="text-sm text-slate-600 leading-relaxed max-w-sm mx-auto space-y-3">
-                    <p>
-                      Hello <strong className="text-amber-700 font-semibold">{formData.name}</strong>, thank you for choosing Renowix False Ceiling services Noida!
-                    </p>
-                    <p className="bg-emerald-50 text-emerald-800 p-4 rounded-xl border border-emerald-200/50 font-medium text-xs">
-                      💬 We have prepared a structured WhatsApp inquiry with your selection. Please click <strong>Send</strong> on WhatsApp to submit your request instantly.
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      If the WhatsApp window didn't open automatically, please click the button below:
-                    </p>
-                  </div>
-                  
-                  <div className="pt-4 flex flex-col gap-2.5">
-                    <a
-                      href={`https://api.whatsapp.com/send?phone=919211429635&text=${encodeURIComponent(formatWhatsAppMessage(formData))}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full inline-flex justify-center items-center rounded-xl bg-[#25D366] hover:bg-[#128C7E] px-5 py-3.5 text-sm font-bold text-white shadow-lg transition-all"
-                    >
-                      Continue to WhatsApp Setup
-                    </a>
-                    
-                    <button
-                      type="button"
-                      id="callback-success-close-btn"
-                      onClick={handleReset}
-                      className="w-full inline-flex justify-center rounded-xl bg-slate-100 hover:bg-slate-200 px-5 py-3 text-xs font-semibold text-slate-600 transition-all font-sans cursor-pointer"
-                    >
-                      Back to Landing Page
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <form id="callback-request-form" onSubmit={handleSubmit} className="space-y-4 text-left">
-                  <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                    Fill out this simple, optimized form, and we will coordinate layouts & technical catalogs with you instantly via WhatsApp.
-                  </p>
+              <form id="callback-request-form" onSubmit={handleSubmit} className="space-y-4 text-left">
+                <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+                  Fill out this simple, optimized form, and we will coordinate layouts & technical catalogs with you instantly via WhatsApp.
+                </p>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {/* Name */}
@@ -383,7 +351,7 @@ export default function CallbackFormModal({
                       {isSubmitting ? (
                         <>
                           <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
-                          Requesting Callback...
+                          Redirecting to Thank-You Page...
                         </>
                       ) : (
                         "Request Callback"
@@ -394,7 +362,6 @@ export default function CallbackFormModal({
                     </p>
                   </div>
                 </form>
-              )}
             </div>
           </motion.div>
         </div>
