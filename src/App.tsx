@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Phone, 
   MapPin, 
@@ -34,6 +34,45 @@ export default function App() {
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState<boolean>(false);
   const [modalPreference, setModalPreference] = useState<string>("gypsum");
   const [modalBudget, setModalBudget] = useState<string>("₹25,000 - ₹50,000");
+
+  // Dynamic Auto-height hook for clean WordPress/Elementor embedding without duplicate scrollbars
+  useEffect(() => {
+    const sendHeight = () => {
+      const height = document.documentElement.scrollHeight || document.body.scrollHeight;
+      // Post the message to parent window
+      window.parent.postMessage({ type: "RENOWIX_FRAME_RESIZE", height }, "*");
+    };
+
+    // Run initially & with minor delayed buffers to allow layout transitions
+    sendHeight();
+    const timeoutId1 = setTimeout(sendHeight, 150);
+    const timeoutId2 = setTimeout(sendHeight, 500);
+
+    // Bind event listeners
+    window.addEventListener("load", sendHeight);
+    window.addEventListener("resize", sendHeight);
+
+    // Monitor internal DOM transformations (e.g., calculator state changes, tabs, accordion)
+    const observer = new MutationObserver(() => {
+      sendHeight();
+      // Second tick after any browser reflow
+      requestAnimationFrame(sendHeight);
+    });
+
+    observer.observe(document.body, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
+      window.removeEventListener("load", sendHeight);
+      window.removeEventListener("resize", sendHeight);
+      observer.disconnect();
+    };
+  }, []);
   
   // Ceiling explore state
   const [activeCeilingId, setActiveCeilingId] = useState<string>("gypsum");
@@ -77,7 +116,7 @@ export default function App() {
       typeName: "Gypsum Design Steps",
       area: "280 sq.ft",
       rate: "Starting ₹99/sq.ft",
-      image: "https://renowix.in/wp-content/uploads/2026/06/d278461f57c12866efa7d330a15d13b7-1.jpg",
+      image: "https://renowix.in/wp-content/uploads/2026/06/4b5804a0910992862ea80454953d4859.jpg",
       highlight: "Double tier steps with central fan box"
     },
     {
@@ -88,7 +127,7 @@ export default function App() {
       typeName: "Handcarved POP Plaster",
       area: "140 sq.ft",
       rate: "Starting ₹139/sq.ft",
-      image: "https://renowix.in/wp-content/uploads/2026/06/dbb584e2ab84feda0c9fc31564f3f9fa.jpg",
+      image: "https://renowix.in/wp-content/uploads/2026/06/4d363de7ca4d19d62f93e2a3a6a0f643.jpg",
       highlight: "Central decorative plate + deep tier molding"
     },
     {
@@ -99,7 +138,7 @@ export default function App() {
       typeName: "Waterproof Teak PVC",
       area: "85 sq.ft",
       rate: "Starting ₹119/sq.ft",
-      image: "https://renowix.in/wp-content/uploads/2026/06/43849f01ce3b40f0a999c61d6ee1a1d5.jpg",
+      image: "https://renowix.in/wp-content/uploads/2026/06/bcc8db2a5743e8027702400011ef4129.jpg",
       highlight: "Moisture barrier & accent spotlights layout"
     },
     {
@@ -110,18 +149,18 @@ export default function App() {
       typeName: "Acoustic T-Grid Systems",
       area: "1,200 sq.ft",
       rate: "Starting ₹99/sq.ft",
-      image: "https://renowix.in/wp-content/uploads/2026/06/f244f107a82c59a086cde1763c2a42ad.jpg",
+      image: "https://renowix.in/wp-content/uploads/2026/06/5d6b9033bef27960f5349608e9dbdcde.jpg",
       highlight: "Acoustic tiles & linear ceiling grids"
     },
     {
       id: "p6",
       title: "Lobby Reception Acoustic Ceiling",
-      sector: "Noida Sector 62 & 63 (Commercial Hub)",
+      sector: "Noida Sector 62 & 63 (Commercial hub)",
       type: "grid",
       typeName: "Armstrong Lay-In Ceiling",
       area: "450 sq.ft",
       rate: "Starting ₹99/sq.ft",
-      image: "https://renowix.in/wp-content/uploads/2026/06/e75c7d68b1a19d38e0c1ab9be216cdad.jpg",
+      image: "https://renowix.in/wp-content/uploads/2026/06/grid-tiles.jpg",
       highlight: "Moisture resistant grid panels"
     }
   ];
@@ -147,7 +186,7 @@ export default function App() {
             <img 
               src="https://renowix.in/wp-content/uploads/2025/12/Renowix-logo-scaled.png" 
               alt="Renowix Interiors Logo" 
-              className="h-10 w-auto object-contain flex-shrink-0"
+              className="h-[50px] sm:h-[56px] w-auto object-contain flex-shrink-0"
               referrerPolicy="no-referrer"
             />
             <div className="hidden sm:block border-l border-white/20 pl-3">
@@ -711,10 +750,10 @@ export default function App() {
             <div className="space-y-3 text-left text-xs">
               <h4 className="font-bold text-white uppercase tracking-wider text-[10px] font-mono text-amber-400">Ceiling Materials & Rates</h4>
               <ul className="space-y-2.5 text-slate-400">
-                <li><span className="hover:text-amber-400 transition-colors">Seamless Gypsum Ceilings (from ₹89/sq.ft)</span></li>
-                <li><span className="hover:text-amber-400 transition-colors">Ornate POP Domes & Cornices (from ₹109/sq.ft)</span></li>
-                <li><span className="hover:text-amber-400 transition-colors">Waterproof PVC Wooden Panels (from ₹84/sq.ft)</span></li>
-                <li><span className="hover:text-amber-400 transition-colors">Commercial Acoustic Grids (from ₹74/sq.ft)</span></li>
+                <li><span className="hover:text-amber-400 transition-colors">Seamless Gypsum Ceilings (from ₹99/sq.ft)</span></li>
+                <li><span className="hover:text-amber-450 transition-colors">Ornate POP Plaster Ceilings (from ₹139/sq.ft)</span></li>
+                <li><span className="hover:text-amber-400 transition-colors">Waterproof PVC Wooden Panels (from ₹119/sq.ft)</span></li>
+                <li><span className="hover:text-amber-400 transition-colors">Commercial Acoustic Grids (from ₹99/sq.ft)</span></li>
               </ul>
             </div>
 

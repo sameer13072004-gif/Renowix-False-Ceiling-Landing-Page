@@ -31,6 +31,7 @@ export interface CallbackRequest {
   budget: string;
   ceilingTypeOfInterest: string;
   notes: string;
+  callbackTime: string;
 }
 
 export interface Testimonial {
