@@ -82,22 +82,30 @@ export default function CallbackFormModal({
       const message = formatWhatsAppMessage(formData);
       const url = `https://api.whatsapp.com/send?phone=919211429635&text=${encodeURIComponent(message)}`;
       
-      // 1. Immediately launch the pre-filled WordPress thank-you page in a new tab.
-      // This is a direct user-initiated click event, so it is fully authorized by the browser and won't be blocked.
-      // This allows the Meta Ads Manager pixel to record the conversion on load of the thank-you page.
+      // 1. Immediately launch the pre-filled WhatsApp link in a new focused tab.
+      // Because this is directly executed within the synchronous `submit` click handler,
+      // all modern browsers and pop-up blockers accept it fully without restriction.
       try {
-        window.open("https://renowix.in/thank-you-page/", "_blank");
+        window.open(url, "_blank");
       } catch (err) {
-        console.error("Failed to open thank-you page:", err);
+        console.error("Failed to auto-launch WhatsApp window:", err);
       }
       
-      // 2. Introduce a deliberate 3-second delay so that the user and the Meta Ads Pixel can fully process the thank-you page,
-      // then seamlessly forward the active browser tab to the pre-filled WhatsApp API link.
+      // 2. Simultaneously redirect the active primary tab to the official WordPress thank-you page.
+      // This is the absolute highest authority navigation and is fully supported for firing Meta Ads pixels.
       setTimeout(() => {
         setIsSubmitting(false);
-        window.location.href = url;
+        try {
+          if (window.top) {
+            window.top.location.href = "https://renowix.in/thank-you-page/";
+          } else {
+            window.location.href = "https://renowix.in/thank-you-page/";
+          }
+        } catch (err) {
+          window.location.href = "https://renowix.in/thank-you-page/";
+        }
         onClose();
-      }, 3000);
+      }, 500);
     }
   };
 
