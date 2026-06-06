@@ -1,0 +1,6 @@
+{
+  "name": "Renowix False Ceilings Noida",
+  "description": "High-converting conversational landing page for Renowix's luxury Gypsum, POP, Grid, and PVC false ceiling services in Noida.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
