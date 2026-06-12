@@ -68,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const base64Payload = Buffer.from(JSON.stringify(requestPayload)).toString("base64");
 
     // Compute checksum hash: SHA256(base64Payload + "/pg/v1/pay" + saltKey) + "###" + saltIndex
-    const hashString = base64Payload + "/pg/v1/pay" + saltKey;
+    const hashString = base64Payload + "/apis/merchant-simulator/pg/v1/pay" + saltKey;
     const sha256Hash = crypto.createHash("sha256").update(hashString).digest("hex");
     const checksum = sha256Hash + "###" + saltIndex;
 
