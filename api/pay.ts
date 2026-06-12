@@ -5,10 +5,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS configuration to allow local development and Vercel hosting integration
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS,GET");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, X-VERIFY"
   );
 
   if (req.method === "OPTIONS") {
@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { name = "Diagnostic Test User", phone = "9999999999", amount = 199 } = isGet ? req.query : (req.body || {});
 
-    // Fetch PhonePe merchant credentials from environment variables
+    // Fetch PhonePe merchant credentials securely from system environment variables
     const merchantId = process.env.PHONEPE_MERCHANT_ID; 
     const saltKey = process.env.PHONEPE_SALT_KEY;
     const saltIndex = process.env.PHONEPE_SALT_INDEX || "1";
@@ -33,38 +33,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Setup URLs (Forced Live Production Gateway Only)
     const phonepeHost = "https://api.phonepe.com/apis/hermes/pg/v1/pay";
 
-    if (!saltKey) {
-      return res.status(400).json({ 
+    if (!merchantId || !saltKey) {
+      return res.status(500).json({ 
         success: false, 
-        error: "Configuration Error: PHONEPE_SALT_KEY is not defined in Vercel environment variables. Please configure the environment variables on Vercel." 
+        error: "Configuration Error: PHONEPE_MERCHANT_ID or PHONEPE_SALT_KEY is undefined in Vercel. Ensure your Environment Variables are completely deployed." 
       });
     }
 
-    // Generate unique transaction ID
+    // Generate unique transaction tracking elements sequentially
     const merchantTransactionId = "RX" + Date.now() + Math.floor(Math.random() * 1000);
     const merchantUserId = "U" + Math.floor(Math.random() * 1000000);
 
-    // Amount to paise
-    const amountInPaise = Math.round(amount * 100);
+    // Convert amount value securely to integers (Paise format)
+    const amountInPaise = Math.round(Number(amount) * 100);
 
-    // Fix: Match the exact verified Vercel production host
+    // Force absolute tracking domain match (No www mix-ups)
     const DOMAIN = "https://renowix.in";
 
-    // Request payload structure
+    // Request payload structure - Sanitized for PhonePe Standard Hosted PAY_PAGE Schema
     const requestPayload = {
       merchantId,
       merchantTransactionId,
       merchantUserId,
       amount: amountInPaise,
-      redirectUrl: `${DOMAIN}/false-ceiling`, // This will now correctly compile to https://renowix.in/false-ceiling
+      redirectUrl: `${DOMAIN}/false-ceiling`, 
       callbackUrl: `${DOMAIN}/api/webhook`,
-      mobileNumber: phone ? phone.replace(/\D/g, "").slice(-10) : "9999999999",
+      mobileNumber: phone ? String(phone).replace(/\D/g, "").slice(-10) : "9999999999",
       paymentInstrument: {
         type: "PAY_PAGE"
       }
     };
 
-    // Base64 encode request payload
+    // Base64 encode request payload using native, leak-safe Node.js Buffers
     const base64Payload = Buffer.from(JSON.stringify(requestPayload)).toString("base64");
 
     // Compute checksum hash: SHA256(base64Payload + "/pg/v1/pay" + saltKey) + "###" + saltIndex
@@ -94,6 +94,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         transactionId: merchantTransactionId
       });
     } else {
+      // Log the exact response payload error message directly to the Vercel Serverless Terminal
+      console.error("PhonePe Handshake Rejection Details:", JSON.stringify(responseData));
+
       if (isGet) {
         res.setHeader("Content-Type", "text/html");
         return res.status(400).send(`
@@ -115,7 +118,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       return res.status(400).json({
         success: false,
-        error: responseData.message || "Failed to initiate payment transaction with PhonePe."
+        error: responseData.message || "Failed to initiate payment transaction with PhonePe.",
+        rawError: responseData
       });
     }
 
