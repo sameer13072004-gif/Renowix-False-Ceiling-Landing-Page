@@ -26,15 +26,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { name = "Diagnostic Test User", phone = "9999999999", amount = 199 } = isGet ? req.query : (req.body || {});
 
     // Fetch PhonePe merchant credentials from environment variables
-    const merchantId = process.env.PHONEPE_MERCHANT_ID || "PGTESTPAYUAT86"; 
-    const saltKey = process.env.REACT_APP_PHONEPE_SALT_KEY || process.env.PHONEPE_SALT_KEY;
+    const merchantId = process.env.PHONEPE_MERCHANT_ID; 
+    const saltKey = process.env.PHONEPE_SALT_KEY;
     const saltIndex = process.env.PHONEPE_SALT_INDEX || "1";
 
-    // Setup URLs (Prod vs preprod fallback)
-    const isProd = merchantId && !merchantId.startsWith("PGTEST");
-    const phonepeHost = isProd 
-      ? "https://api.phonepe.com/apis/hermes/pg/v1/pay"
-      : "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
+    // Setup URLs (Forced Live Production Gateway Only)
+    const phonepeHost = "https://api.phonepe.com/apis/hermes/pg/v1/pay";
 
     if (!saltKey) {
       return res.status(400).json({ 
