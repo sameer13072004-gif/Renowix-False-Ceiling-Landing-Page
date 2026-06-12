@@ -26,12 +26,12 @@ export interface CallbackRequest {
   phone: string;
   email: string;
   location: string;
-  customSector: string;
-  timeline: 'within_1_month' | 'within_3_months' | 'within_6_months' | 'after_1_year' | '';
+  customSector: string; // society/apartment details - now required
+  timeline: 'immediate' | 'next_30_days' | 'planning_phase' | '';
   budget: string;
   ceilingTypeOfInterest: string;
   notes: string;
-  callbackTime: string;
+  siteAuditTime: string; // Changed from callbackTime
 }
 
 export interface Testimonial {

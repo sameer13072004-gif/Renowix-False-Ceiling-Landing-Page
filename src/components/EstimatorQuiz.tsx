@@ -390,10 +390,10 @@ export default function EstimatorQuiz({ onOpenCallbackWithData }: EstimatorQuizP
           <div className="bg-amber-500/5 border border-amber-500/15 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-slate-300 leading-normal">
             <div className="space-y-0.5">
               <p className="font-bold flex items-center gap-1.5 text-white">
-                🚀 Callback site assessment check in Sector-wise Noida
+                🚀 Secure your Bespoke Technical Site Audit slot in Noida
               </p>
               <p className="text-slate-450 text-[11px]">
-                Our interiors specialist coordinator will call you to discuss design catalogs and requirements.
+                Lock our senior consultant with 4D laser measurement tech diagnostics and itemized BOQ calculations!
               </p>
             </div>
             <select
@@ -419,9 +419,9 @@ export default function EstimatorQuiz({ onOpenCallbackWithData }: EstimatorQuizP
             </button>
             <button
               onClick={handleFinishQuiz}
-              className="flex-grow flex items-center justify-center gap-1.5 text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl py-3.5 px-5 shadow-lg shadow-amber-500/20 transition-all cursor-pointer text-center uppercase tracking-wider"
+              className="flex-grow flex items-center justify-center gap-1.5 text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl py-3.5 px-5 shadow-lg shadow-amber-500/20 transition-all cursor-pointer text-center uppercase tracking-wider animate-pulse"
             >
-              Request Callback with Estimate <ChevronRight className="h-4 w-4" />
+              Book Tech Site Audit @ ₹199 <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>

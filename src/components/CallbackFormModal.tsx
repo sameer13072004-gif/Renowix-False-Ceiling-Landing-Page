@@ -1,8 +1,24 @@
-import React, { useState } from "react";
-import { X, CheckCircle, Calendar, Shield, IndianRupee, MapPin, Clock } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { 
+  X, 
+  CheckCircle, 
+  Calendar, 
+  Shield, 
+  IndianRupee, 
+  MapPin, 
+  Clock, 
+  AlertTriangle,
+  Zap,
+  Award,
+  Check,
+  Smartphone,
+  CreditCard,
+  QrCode,
+  Lock,
+  ArrowRight
+} from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { CallbackRequest } from "../types";
-import { NOIDA_LOCATIONS } from "../constants";
 
 interface CallbackFormModalProps {
   isOpen: boolean;
@@ -11,105 +27,105 @@ interface CallbackFormModalProps {
   initialBudget?: string;
 }
 
+type ModalFlowStep = "form" | "phonepe_checkout" | "success";
+
 export default function CallbackFormModal({
   isOpen,
   onClose,
   initialType = "",
-  initialBudget = "₹25,000 - ₹50,000"
+  initialBudget = "₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)"
 }: CallbackFormModalProps) {
+  // Modal flow state
+  const [flowStep, setFlowStep] = useState<ModalFlowStep>("form");
+
+  // Timer: 15 minutes = 900 seconds
+  const [secondsLeft, setSecondsLeft] = useState<number>(900);
+  
+  // Selected Payment Method inside PhonePe portal
+  const [paymentMethod, setPaymentMethod] = useState<"upi" | "qr" | "card">("upi");
+  const [cardDetails, setCardDetails] = useState({ number: "", expiry: "", cvv: "" });
+  const [selectedUpiApp, setSelectedUpiApp] = useState("phonepe");
+  const [simulatedPaying, setSimulatedPaying] = useState(false);
+
+  // Form Fields State
   const [formData, setFormData] = useState<CallbackRequest>({
     name: "",
     phone: "",
     email: "",
     location: "",
-    customSector: "",
+    customSector: "", // Now non-optional
     timeline: "",
     budget: initialBudget,
     ceilingTypeOfInterest: initialType || "gypsum",
     notes: "",
-    callbackTime: "Anytime (9 AM - 9 PM)"
+    siteAuditTime: "Morning (9 AM - 12 PM)" // Site Audit Time
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof CallbackRequest, string>>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset/Countdown hook
+  useEffect(() => {
+    if (!isOpen) {
+      setSecondsLeft(900);
+      setFlowStep("form");
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          return 900; // Reset or keep at 0
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isOpen]);
+
+  const formatTime = (seconds: number) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+  };
 
   const validate = (): boolean => {
     const tempErrors: Partial<Record<keyof CallbackRequest, string>> = {};
-    if (!formData.name.trim()) tempErrors.name = "We need your name to address you.";
+    if (!formData.name.trim()) tempErrors.name = "Your full name is required.";
     if (!formData.phone.trim()) {
-      tempErrors.phone = "Phone number is required for callback.";
+      tempErrors.phone = "Mobile number is required for coordinating our audit team.";
     } else if (!/^\+?[0-9\s-]{10,13}$/.test(formData.phone.replace(/\s+/g, ""))) {
       tempErrors.phone = "Please enter a valid 10-digit mobile number.";
     }
-    if (!formData.location.trim()) tempErrors.location = "Please tell us your sector or location.";
-    if (!formData.timeline) tempErrors.timeline = "Please select a starting timeline.";
+    if (!formData.location.trim()) tempErrors.location = "Select your sector or high-rise location.";
+    if (!formData.customSector.trim()) {
+      tempErrors.customSector = "Noida society, sector block or apartment details are required.";
+    }
+    if (!formData.timeline) tempErrors.timeline = "Please let us know your planned execution timeline.";
     
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
 
-  const formatWhatsAppMessage = (data: CallbackRequest) => {
-    const materialName = 
-      data.ceilingTypeOfInterest === "gypsum" ? "Seamless Gypsum" :
-      data.ceilingTypeOfInterest === "pop" ? "Handcarved POP Plaster" :
-      data.ceilingTypeOfInterest === "pvc" ? "Waterproof PVC Wood" :
-      data.ceilingTypeOfInterest === "grid" ? "Acoustic T-Grid" : data.ceilingTypeOfInterest;
-
-    const timelineLabel = 
-      data.timeline === "within_1_month" ? "Within 1 Month (Immediate)" :
-      data.timeline === "within_3_months" ? "Within 3 Months" :
-      data.timeline === "within_6_months" ? "Within 6 Months" :
-      data.timeline === "after_1_year" ? "After 1 Year" : "Not Specified";
-
-    return `Hello Renowix Ceilings, I want to request a callback for False Ceiling work in Noida.
-
-*• Name:* ${data.name}
-*• Mobile:* ${data.phone}
-*• Preferred Callback Time:* ${data.callbackTime}
-*• Noida Location/Sector:* ${data.location}
-*• Specific Address:* ${data.customSector || "Not specified"}
-*• Preferred Material:* ${materialName}
-*• Installation Timeline:* ${timelineLabel}
-*• Estimated Budget:* ${data.budget || "Not specified"}
-*• Special Design Requests:* ${data.notes || "None"}`;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      setIsSubmitting(true);
-      
-      const message = formatWhatsAppMessage(formData);
-      const url = `https://api.whatsapp.com/send?phone=919211429635&text=${encodeURIComponent(message)}`;
-      
-      // 1. Immediately launch the pre-filled WhatsApp link in a new focused tab.
-      // Because this is directly executed within the synchronous `submit` click handler,
-      // all modern browsers and pop-up blockers accept it fully without restriction.
-      try {
-        window.open(url, "_blank");
-      } catch (err) {
-        console.error("Failed to auto-launch WhatsApp window:", err);
-      }
-      
-      // 2. Simultaneously redirect the active primary tab to the official WordPress thank-you page.
-      // This is the absolute highest authority navigation and is fully supported for firing Meta Ads pixels.
-      setTimeout(() => {
-        setIsSubmitting(false);
-        try {
-          if (window.top) {
-            window.top.location.href = "https://renowix.in/thank-you-page/";
-          } else {
-            window.location.href = "https://renowix.in/thank-you-page/";
-          }
-        } catch (err) {
-          window.location.href = "https://renowix.in/thank-you-page/";
-        }
-        onClose();
-      }, 500);
+      // Transition to PhonePe Mock Checkout Secure Gateway
+      setFlowStep("phonepe_checkout");
     }
   };
 
-  const handleReset = () => {
+  const handlePhonePePay = () => {
+    setSimulatedPaying(true);
+    // Simulate real PG redirection and bank confirmation latency
+    setTimeout(() => {
+      setSimulatedPaying(false);
+      setFlowStep("success");
+    }, 1800);
+  };
+
+  const handleCloseSuccess = () => {
+    // Reset state & close
     setFormData({
       name: "",
       phone: "",
@@ -117,12 +133,13 @@ export default function CallbackFormModal({
       location: "",
       customSector: "",
       timeline: "",
-      budget: "₹25,000 - ₹50,000",
+      budget: "₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)",
       ceilingTypeOfInterest: "gypsum",
       notes: "",
-      callbackTime: "Anytime (9 AM - 9 PM)"
+      siteAuditTime: "Morning (9 AM - 12 PM)"
     });
     setErrors({});
+    setFlowStep("form");
     onClose();
   };
 
@@ -135,242 +152,649 @@ export default function CallbackFormModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-slate-950/70 backdrop-blur-md"
+            onClick={flowStep !== "phonepe_checkout" ? onClose : undefined}
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
             id="modal-backdrop"
           />
 
-          {/* Modal content: light and clean */}
+          {/* Modal card */}
           <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            initial={{ scale: 0.95, opacity: 0, y: 15 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            transition={{ type: "spring", duration: 0.5 }}
-            className="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl bg-white text-slate-800 shadow-2xl border border-slate-150"
+            exit={{ scale: 0.95, opacity: 0, y: 15 }}
+            transition={{ type: "spring", duration: 0.4 }}
+            className={`relative z-10 w-full rounded-2xl bg-slate-900 border border-slate-800 text-slate-100 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col ${
+              flowStep === "form" ? "max-w-4xl" : "max-w-lg"
+            }`}
             id="modal-card"
           >
-            {/* Header branding accents */}
-            <div className="bg-gradient-to-r from-amber-50 to-amber-100/60 border-b border-amber-200/50 px-6 py-5 text-slate-900 relative">
-              <div className="absolute top-0 right-12 h-16 w-16 bg-amber-500/5 blur-xl rounded-full" />
-              <div className="flex items-center justify-between relative z-10">
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-700">Noida Installation</span>
-                  <p className="font-display text-xl font-bold text-slate-900 tracking-tight">Request an Expert Callback</p>
+            {/* Countdown / Slot reservation banner */}
+            {flowStep !== "success" && (
+              <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between text-xs font-mono font-bold text-amber-400">
+                <div className="flex items-center gap-1.5 animate-pulse">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  <span>Only 1 slot left for Site Audits this week in Noida!</span>
                 </div>
-                <button
-                  type="button"
-                  id="close-modal-btn"
-                  onClick={onClose}
-                  className="rounded-full bg-slate-100 p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-all cursor-pointer"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-1 bg-amber-500/15 py-0.5 px-2 rounded border border-amber-500/20">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Slot lock expires in: <strong className="text-white">{formatTime(secondsLeft)}</strong></span>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Inner Content */}
-            <div className="p-6 md:p-8 max-h-[75vh] overflow-y-auto">
-              <form id="callback-request-form" onSubmit={handleSubmit} className="space-y-4 text-left">
-                <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                  Fill out this simple, optimized form, and we will coordinate layouts & technical catalogs with you instantly via WhatsApp.
-                </p>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {/* Name */}
-                    <div className="space-y-1">
-                      <label htmlFor="name-input" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">Your Full Name *</label>
-                      <input
-                        type="text"
-                        id="name-input"
-                        required
-                        placeholder="e.g. Amit Kumar"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className={`w-full rounded-xl px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all ${
-                          errors.name ? "border-rose-500/60 focus:ring-rose-500/20" : ""
-                        }`}
-                      />
-                      {errors.name && <p className="text-xs text-rose-500 font-semibold">{errors.name}</p>}
-                    </div>
-
-                    {/* Phone */}
-                    <div className="space-y-1">
-                      <label htmlFor="phone-input" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">Mobile Number *</label>
-                      <input
-                        type="tel"
-                        id="phone-input"
-                        required
-                        placeholder="e.g. 98715 XXXXX"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className={`w-full rounded-xl px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all ${
-                          errors.phone ? "border-rose-500/60 focus:ring-rose-500/20" : ""
-                        }`}
-                      />
-                      {errors.phone && <p className="text-xs text-rose-500 font-semibold">{errors.phone}</p>}
-                    </div>
-                  </div>
-
-                  {/* Noida Location Sector Selection */}
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <label htmlFor="location-input" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-amber-600" /> Noida Location / Sector *
-                      </label>
-                      <input
-                        type="text"
-                        id="location-input"
-                        required
-                        placeholder="e.g. Sector 137, Noida"
-                        value={formData.location}
-                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                        className={`w-full rounded-xl bg-slate-50 border px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium ${
-                          errors.location ? "border-rose-500/60 focus:ring-rose-500/20" : "border-slate-200"
-                        }`}
-                      />
-                      {errors.location && <p className="text-xs text-rose-500 font-semibold">{errors.location}</p>}
-                    </div>
-
-                    {/* Best Time to Call Section */}
-                    <div className="space-y-1">
-                      <label htmlFor="callback-time-select" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5 text-amber-600" /> Best Callback Time *
-                      </label>
-                      <select
-                        id="callback-time-select"
-                        required
-                        value={formData.callbackTime}
-                        onChange={(e) => setFormData({ ...formData, callbackTime: e.target.value })}
-                        className="w-full rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium cursor-pointer"
+            {/* Modal Scrollable Container */}
+            <div className="overflow-y-auto flex-1">
+              <AnimatePresence mode="wait">
+                
+                {/* FLOW 1: BOOKING FIELDS + COMPARISON TABLE & VALUE PROP */}
+                {flowStep === "form" && (
+                  <motion.div
+                    key="step-booking-form"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="p-6 md:p-8 space-y-6"
+                  >
+                    {/* Header with Exit action */}
+                    <div className="flex justify-between items-start gap-4 pb-4 border-b border-slate-850">
+                      <div>
+                        <span className="text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold px-2 py-0.5 rounded uppercase font-mono tracking-wider">
+                          EXCLUSIVE EXPERT SITE VISIT
+                        </span>
+                        <h2 className="text-xl md:text-2xl font-extrabold text-white mt-1 select-none">
+                          Book a Technical Site Audit <span className="text-amber-400">@ ₹199</span>
+                        </h2>
+                        <p className="text-xs text-slate-400 leading-normal mt-0.5">
+                          Stop getting handwritten, variable guess-estimates from unvetted contractors. Lock expert precision today.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg bg-slate-850 p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                        title="Close booking panel"
                       >
-                        <option value="Anytime (9 AM - 9 PM)">Anytime (9 AM - 9 PM)</option>
-                        <option value="Morning (9 AM - 12 PM)">Morning (9 AM - 12 PM)</option>
-                        <option value="Afternoon (12 PM - 3 PM)">Afternoon (12 PM - 3 PM)</option>
-                        <option value="Evening (3 PM - 6 PM)">Evening (3 PM - 6 PM)</option>
-                        <option value="Late Evening (6 PM - 9 PM)">Late Evening (6 PM - 9 PM)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Custom specific address details */}
-                  <div className="space-y-1">
-                    <label htmlFor="custom-sector-input" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">Society / Apartment details (Optional)</label>
-                    <input
-                      type="text"
-                      id="custom-sector-input"
-                      placeholder="e.g. Mahagun Moderne, Flat 402, Sector 78"
-                      value={formData.customSector}
-                      onChange={(e) => setFormData({ ...formData, customSector: e.target.value })}
-                      className="w-full rounded-xl px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {/* Timeline Dropdown */}
-                    <div className="space-y-1">
-                      <label htmlFor="timeline-select" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5 text-amber-600" /> Installation Timeline *
-                      </label>
-                      <select
-                        id="timeline-select"
-                        required
-                        value={formData.timeline}
-                        onChange={(e) => setFormData({ ...formData, timeline: e.target.value as any })}
-                        className={`w-full rounded-xl bg-slate-50 border px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 cursor-pointer font-medium ${
-                          errors.timeline ? "border-rose-500 focus:ring-rose-200" : "border-slate-200 focus:ring-amber-500/20 focus:border-amber-500"
-                        }`}
-                      >
-                        <option value="" className="text-slate-400">-- Choose Timeline --</option>
-                        <option value="within_1_month">Within 1 month (Immediate)</option>
-                        <option value="within_3_months">Within 3 months</option>
-                        <option value="within_6_months">Within 6 months</option>
-                        <option value="after_1_year">After 1 year</option>
-                      </select>
-                      {errors.timeline && <p className="text-xs text-rose-500 font-semibold">{errors.timeline}</p>}
+                        <X className="h-4.5 w-4.5" />
+                      </button>
                     </div>
 
-                    {/* Budget Dropdown / Select */}
-                    <div className="space-y-1">
-                      <label htmlFor="budget-select" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1">
-                        <IndianRupee className="h-3.5 w-3.5 text-amber-600" /> Budget Range
-                      </label>
-                      <select
-                        id="budget-select"
-                        value={formData.budget}
-                        onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                        className="w-full rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium cursor-pointer"
-                      >
-                        <option value="Under ₹25,000">Under ₹25,000 (Single Room)</option>
-                        <option value="₹25,000 - ₹50,000">₹25,000 - ₹50,000 (standard)</option>
-                        <option value="₹50,000 - ₹1,00,000">₹50,000 - ₹1,00,000</option>
-                        <option value="Over ₹1,00,000">Over ₹1,00,000 (Full Flat)</option>
-                      </select>
-                    </div>
-                  </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                      
+                      {/* Left: Interactive comparison table & benefits */}
+                      <div className="lg:col-span-5 space-y-5 text-left">
+                        {/* Benefits list */}
+                        <div className="space-y-3 bg-[#0d121f] p-4 rounded-xl border border-white/5">
+                          <p className="text-xs font-bold font-mono uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                            <Award className="h-4 w-4 shrink-0" /> Included in Your ₹199 Audit:
+                          </p>
+                          <ul className="space-y-2.5 text-xs text-slate-350">
+                            <li className="flex items-start gap-1.5">
+                              <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                              <span><strong>Senior Consultant's Slot locked</strong> for your home layout planning</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                              <span><strong>4D Laser Measurements</strong> and diagnostics (no tape measure margin errors)</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                              <span><strong>Fully Detailed, Transparent BOQ</strong> (Bill of Quantities)—never details-shifting or surprise fee additions!</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                              <span><strong>3D Floorplan & Ceiling Layout</strong> preliminary configuration advice</span>
+                            </li>
+                          </ul>
+                        </div>
 
-                  {/* Preferred Material Radio buttons */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">Preferred Material</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { id: "gypsum", label: "Gypsum (Seamless)" },
-                        { id: "pop", label: "POP plaster" },
-                        { id: "pvc", label: "PVC wood panel" },
-                        { id: "grid", label: "Acoustic T-Grid" }
-                      ].map((item) => (
+                        {/* Comparative Table */}
+                        <div className="space-y-2 bg-[#0c101b] p-4 rounded-xl border border-white/5">
+                          <p className="text-xs font-bold font-mono tracking-wider uppercase text-amber-400 select-none">
+                            Contractor vs. Renowix System
+                          </p>
+                          <div className="overflow-x-auto text-[11px] font-sans">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className="border-b border-slate-800 text-slate-400">
+                                  <th className="py-1.5 font-bold">Standard</th>
+                                  <th className="py-1.5 font-bold">Local Contractor</th>
+                                  <th className="py-1.5 font-bold text-amber-400">Renowix System</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-850 text-slate-300">
+                                <tr>
+                                  <td className="py-1.5 font-semibold text-slate-400">Mapping</td>
+                                  <td className="py-1.5">Tape Measure</td>
+                                  <td className="py-1.5 font-bold text-white flex items-center gap-1">
+                                    <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full inline-block animate-pulse" />
+                                    4D Laser Tech
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td className="py-1.5 font-semibold text-slate-400">Framework</td>
+                                  <td className="py-1.5">Commercial Grade</td>
+                                  <td className="py-1.5 font-bold text-white">Premium GI frame</td>
+                                </tr>
+                                <tr>
+                                  <td className="py-1.5 font-semibold text-slate-400">Quality</td>
+                                  <td className="py-1.5">Crack Appears</td>
+                                  <td className="py-1.5 font-bold text-emerald-450 text-emerald-400">10-Yr Warranty</td>
+                                </tr>
+                                <tr>
+                                  <td className="py-1.5 font-semibold text-slate-400">Estimates</td>
+                                  <td className="py-1.5">Hidden Costs</td>
+                                  <td className="py-1.5 font-bold text-white">Detailed BOQ</td>
+                                </tr>
+                                <tr>
+                                  <td className="py-1.5 font-semibold text-slate-400">Updates</td>
+                                  <td className="py-1.5">Phone Calls</td>
+                                  <td className="py-1.5 font-bold text-white">Live Logs</td>
+                                </tr>
+                                <tr>
+                                  <td className="py-1.5 font-semibold text-slate-400">Support</td>
+                                  <td className="py-1.5">Disconnect Calls</td>
+                                  <td className="py-1.5 font-bold text-white text-emerald-400">24x7 Support</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Technical Audit Form Fields */}
+                      <div className="lg:col-span-7">
+                        <form onSubmit={handleSubmitForm} className="space-y-4">
+                          
+                          {/* Name / Phone */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div className="space-y-1">
+                              <label htmlFor="modal-name-input" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Your Full Name *</label>
+                              <input
+                                id="modal-name-input"
+                                type="text"
+                                required
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="e.g. Amit Kumar"
+                                className={`w-full rounded-xl bg-slate-950 border text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 px-3.5 py-2.5 ${
+                                  errors.name ? "border-rose-500" : "border-slate-800 focus:border-amber-500"
+                                }`}
+                              />
+                              {errors.name && <p className="text-[10px] text-rose-450 text-rose-450 font-mono">{errors.name}</p>}
+                            </div>
+
+                            <div className="space-y-1">
+                              <label htmlFor="modal-phone-input" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Mobile Number *</label>
+                              <input
+                                id="modal-phone-input"
+                                type="tel"
+                                required
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                placeholder="e.g. 98715 00000"
+                                className={`w-full rounded-xl bg-slate-950 border text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 px-3.5 py-2.5 ${
+                                  errors.phone ? "border-rose-500" : "border-slate-800 focus:border-amber-500"
+                                }`}
+                              />
+                              {errors.phone && <p className="text-[10px] text-rose-450 font-mono">{errors.phone}</p>}
+                            </div>
+                          </div>
+
+                          {/* Noida Location Sector / Detailed Address */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div className="space-y-1">
+                              <label htmlFor="modal-location-input" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5 text-amber-500 shrink-0" /> Noida Location/Sector *
+                              </label>
+                              <input
+                                id="modal-location-input"
+                                type="text"
+                                required
+                                value={formData.location}
+                                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                placeholder="e.g. Noida Sector 150"
+                                className={`w-full rounded-xl bg-slate-950 border text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none px-3.5 py-2.5 ${
+                                  errors.location ? "border-rose-500" : "border-slate-800 focus:border-amber-500"
+                                }`}
+                              />
+                              {errors.location && <p className="text-[10px] text-rose-450 font-mono">{errors.location}</p>}
+                            </div>
+
+                            <div className="space-y-1">
+                              <label htmlFor="modal-sector-details" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Society / Apartment Details *</label>
+                              <input
+                                id="modal-sector-details"
+                                type="text"
+                                required
+                                value={formData.customSector}
+                                onChange={(e) => setFormData({ ...formData, customSector: e.target.value })}
+                                placeholder="e.g. Mahagun Moderne, Flat 204"
+                                className={`w-full rounded-xl bg-slate-950 border text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none px-3.5 py-2.5 ${
+                                  errors.customSector ? "border-rose-500" : "border-slate-800 focus:border-amber-500"
+                                }`}
+                              />
+                              {errors.customSector && <p className="text-[10px] text-rose-450 font-mono">{errors.customSector}</p>}
+                            </div>
+                          </div>
+
+                          {/* Site Audit Time Slot / Execution Timeline */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div className="space-y-1">
+                              <label htmlFor="modal-audit-time" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" /> Preferred Site Audit Time *
+                              </label>
+                              <select
+                                id="modal-audit-time"
+                                required
+                                value={formData.siteAuditTime}
+                                onChange={(e) => setFormData({ ...formData, siteAuditTime: e.target.value })}
+                                className="w-full rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-200 focus:outline-none px-3.5 py-2.5 cursor-pointer"
+                              >
+                                <option value="Morning (9 AM - 12 PM)">Morning (9 AM - 12 PM)</option>
+                                <option value="Afternoon (12 PM - 3 PM)">Afternoon (12 PM - 3 PM)</option>
+                                <option value="Evening (3 PM - 6 PM)">Evening (3 PM - 6 PM)</option>
+                                <option value="Late Evening (6 PM - 9 PM)">Late Evening (6 PM - 9 PM)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label htmlFor="modal-timeline" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">When do you intend to begin? *</label>
+                              <select
+                                id="modal-timeline"
+                                required
+                                value={formData.timeline}
+                                onChange={(e) => setFormData({ ...formData, timeline: e.target.value as any })}
+                                className={`w-full rounded-xl bg-slate-950 border text-sm text-slate-200 focus:outline-none px-3.5 py-2.5 cursor-pointer ${
+                                  errors.timeline ? "border-rose-500" : "border-slate-800 focus:border-amber-500"
+                                }`}
+                              >
+                                <option value="">-- Choose Timeline --</option>
+                                <option value="immediate">Immediate (Within 7–15 Days)</option>
+                                <option value="next_30_days">Next 30 Days (Within 1 Month)</option>
+                                <option value="planning_phase">Planning Phase (30+ Days)</option>
+                              </select>
+                              {errors.timeline && <p className="text-[10px] text-rose-450 font-mono">{errors.timeline}</p>}
+                            </div>
+                          </div>
+
+                          {/* Budget Range / Materials */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div className="space-y-1">
+                              <label htmlFor="modal-budget-select" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Budget Range *</label>
+                              <select
+                                id="modal-budget-select"
+                                value={formData.budget}
+                                onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                                className="w-full rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-200 focus:outline-none px-3.5 py-2.5 cursor-pointer"
+                              >
+                                {![
+                                  "₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)",
+                                  "₹2.5 Lakh to ₹5 Lakh (Partial Turnkey Transformation)",
+                                  "₹5 Lakh to ₹15 Lakh (Full Residential Turnkey)",
+                                  "₹15 Lakh+ (Elite Luxury Fit-Outs)"
+                                ].includes(formData.budget) && (
+                                  <option value={formData.budget}>Estimated ceiling: {formData.budget}</option>
+                                )}
+                                <option value="₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)">₹1 Lakh to ₹2.5 Lakh (Premium Upgrades)</option>
+                                <option value="₹2.5 Lakh to ₹5 Lakh (Partial Turnkey Transformation)">₹2.5 Lakh to ₹5 Lakh (Partial Transformation)</option>
+                                <option value="₹5 Lakh to ₹15 Lakh (Full Residential Turnkey)">₹5 Lakh to ₹15 Lakh (Full Residential Turnkey)</option>
+                                <option value="₹15 Lakh+ (Elite Luxury Fit-Outs)">₹15 Lakh+ (Elite Luxury Fit-Outs)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Ceiling Style Preference</span>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {[
+                                  { id: "gypsum", label: "Gypsum Style" },
+                                  { id: "pop", label: "POP Custom" },
+                                  { id: "pvc", label: "PVC Wood" },
+                                  { id: "grid", label: "Modular Grid" }
+                                ].map((tab) => (
+                                  <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, ceilingTypeOfInterest: tab.id })}
+                                    className={`rounded-xl border text-[11px] font-semibold py-2 px-1 transition-all text-center cursor-pointer ${
+                                      formData.ceilingTypeOfInterest === tab.id
+                                        ? "bg-amber-500/15 border-amber-500 text-amber-300 ring-1 ring-amber-500/30"
+                                        : "bg-slate-955 border-slate-800 text-slate-400 hover:bg-slate-850"
+                                    }`}
+                                  >
+                                    {tab.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Extra Notes */}
+                          <div className="space-y-1">
+                            <label htmlFor="modal-notes" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Any design guidelines or requirements? (Optional)</label>
+                            <textarea
+                              id="modal-notes"
+                              rows={1}
+                              value={formData.notes || ""}
+                              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                              placeholder="e.g. Rectangular cove profile with space for LED silicone profile"
+                              className="w-full rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-200 placeholder:text-slate-650 placeholder:text-slate-500 focus:outline-none px-3.5 py-2 resize-none"
+                            />
+                          </div>
+
+                          {/* Button booking */}
+                          <div className="pt-2">
+                            <button
+                              type="submit"
+                              id="audit-booking-submit-btn"
+                              className="w-full inline-flex justify-center items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-955 text-slate-950 font-extrabold text-sm py-4 cursor-pointer hover:shadow-lg shadow-amber-500/10 transition-all uppercase tracking-wider"
+                            >
+                              Tech led Audit Booking @ ₹199 <ArrowRight className="h-4.5 w-4.5" />
+                            </button>
+                          </div>
+
+                        </form>
+                      </div>
+
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* FLOW 2: PHONEPE GATEWAY SECURE INTEGRATION SANDBOX PORTAL */}
+                {flowStep === "phonepe_checkout" && (
+                  <motion.div
+                    key="step-phonepe-checkout"
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    className="p-6 space-y-6 bg-[#6739b7]/3 inline-block w-full text-slate-800 bg-white"
+                  >
+                    {/* PhonePe Secure Header */}
+                    <div className="flex items-center justify-between border-b border-purple-100 pb-4 text-left">
+                      <div className="flex items-center gap-2">
+                        {/* Custom visual SVG representing the professional PhonePe badge */}
+                        <div className="bg-[#6739b7] p-1.5 rounded-lg text-white font-extrabold flex items-center justify-center text-sm tracking-tighter shadow-md">
+                          PhonePe
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 tracking-tight">Secure Payment Gateway</p>
+                          <p className="text-[10px] text-slate-500 font-mono font-bold uppercase">Client Version: 1 • ID: SU2602241401026481883811</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[9px] font-mono font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200.5 px-2 py-0.5 rounded shadow-sm flex items-center gap-0.5">
+                          <Lock className="h-2.5 w-2.5" /> Sandbox Staging
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Merchant Billing Box */}
+                    <div className="bg-[#6739b7]/5 border border-[#6739b7]/10 p-4 rounded-xl text-left flex justify-between items-center relative">
+                      <div className="absolute top-0 right-10 h-10 w-10 bg-[#6739b7]/5 blur-lg rounded-full" />
+                      <div className="space-y-0.5">
+                        <p className="text-[9px] font-bold font-mono uppercase tracking-widest text-[#6739b7]">Billing To:</p>
+                        <p className="text-sm font-extrabold text-slate-900">RENOWIX INTERIORS PRIVATE LIMITED</p>
+                        <p className="text-[10px] text-slate-500 font-mono">Bespoke Technical Laser Site Audit</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-semibold text-slate-500 font-mono">TOTAL PAYABLE</p>
+                        <p className="text-2xl font-extrabold text-[#6739b7] font-sans">₹199</p>
+                      </div>
+                    </div>
+
+                    {/* Left: Interactive Payment Options selectors */}
+                    <div className="space-y-4">
+                      <div className="flex border-b border-slate-100 text-xs font-bold uppercase tracking-wider mb-2">
                         <button
-                          key={item.id}
                           type="button"
-                          id={`ceiling-pref-${item.id}`}
-                          onClick={() => setFormData({ ...formData, ceilingTypeOfInterest: item.id })}
-                          className={`rounded-xl border px-3.5 py-2 text-xs font-semibold tracking-wide transition-all cursor-pointer ${
-                            formData.ceilingTypeOfInterest === item.id
-                              ? "bg-amber-500/10 border-amber-500 text-amber-805 ring-1 ring-amber-500 font-bold"
-                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                          onClick={() => setPaymentMethod("upi")}
+                          className={`flex-1 pb-2.5 text-center transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            paymentMethod === "upi" ? "border-b-2 border-[#6739b7] text-[#6739b7] font-extrabold" : "text-slate-450 hover:text-slate-800"
                           }`}
                         >
-                          {item.label}
+                          <Smartphone className="h-4 w-4 shrink-0" /> UPI App
                         </button>
-                      ))}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("qr")}
+                          className={`flex-1 pb-2.5 text-center transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            paymentMethod === "qr" ? "border-b-2 border-[#6739b7] text-[#6739b7] font-extrabold" : "text-slate-450 hover:text-slate-800"
+                          }`}
+                        >
+                          <QrCode className="h-4 w-4 shrink-0" /> Scan QR
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("card")}
+                          className={`flex-1 pb-2.5 text-center transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            paymentMethod === "card" ? "border-b-2 border-[#6739b7] text-[#6739b7] font-extrabold" : "text-slate-450 hover:text-slate-800"
+                          }`}
+                        >
+                          <CreditCard className="h-4 w-4 shrink-0" /> Cards
+                        </button>
+                      </div>
+
+                      {/* Payment Panels */}
+                      <AnimatePresence mode="wait">
+                        
+                        {/* Pay via UPI App selection */}
+                        {paymentMethod === "upi" && (
+                          <motion.div
+                            key="pay-upi"
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="space-y-3 pt-1 text-left"
+                          >
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Choose your UPI App:</label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                { id: "phonepe", label: "PhonePe", color: "bg-purple-100 text-purple-800 border-purple-300" },
+                                { id: "gpay", label: "Google Pay", color: "bg-blue-105 bg-blue-100 text-blue-800 border-blue-200" },
+                                { id: "paytm", label: "Paytm", color: "bg-cyan-105 bg-cyan-100 text-cyan-800 border-cyan-200" }
+                              ].map((app) => (
+                                <button
+                                  key={app.id}
+                                  type="button"
+                                  onClick={() => setSelectedUpiApp(app.id)}
+                                  className={`rounded-xl border p-3 flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition-all cursor-pointer ${
+                                    selectedUpiApp === app.id 
+                                      ? `${app.color} ring-1 ring-offset-2 ring-purple-400`
+                                      : "bg-slate-50 border-slate-200 hover:border-slate-350"
+                                  }`}
+                                >
+                                  <Smartphone className="h-5 w-5 opacity-80" />
+                                  <span>{app.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                            <div className="bg-slate-50 border border-slate-150 rounded-xl p-3 text-[11px] text-slate-600 leading-normal">
+                              📱 Once payment button is clicked, your selected UPI app will trigger simulated validation requesting ₹199 authorization. No actual amount will be debited.
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* Pay with QR code mockup */}
+                        {paymentMethod === "qr" && (
+                          <motion.div
+                            key="pay-qr"
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="flex flex-col items-center justify-center space-y-3 pt-2"
+                          >
+                            <div className="bg-white border border-slate-200 p-3.5 rounded-2xl shadow-inner relative overflow-hidden group">
+                              <img 
+                                src="https://renowix.in/wp-content/uploads/2026/06/bcc8db2a5743e8027702400011ef4129.jpg" 
+                                alt="Payment QR Code for Technical Audit" 
+                                className="h-32 w-32 object-cover opacity-10 filter blur-[1px]"
+                              />
+                              <div className="absolute inset-0 flex flex-col items-center justify-center p-3 select-none text-center">
+                                {/* Visual modern Mock design representation */}
+                                <QrCode className="h-10 w-10 text-[#6739b7] animate-pulse" />
+                                <span className="font-mono text-[9px] text-[#6739b7] font-bold tracking-wider uppercase mt-1">RENOWIX PG INTEGRATION</span>
+                                <span className="font-sans text-[11px] text-slate-900 font-extrabold mt-0.5">₹199 site-audit</span>
+                              </div>
+                            </div>
+                            <div className="space-y-0.5 text-center">
+                              <p className="text-xs font-bold text-slate-800">Dynamic UPI Staging QR Code</p>
+                              <p className="text-[10px] text-slate-500 leading-normal max-w-xs font-mono uppercase">Scan using any UPI app to safely approve sandbox transaction instantly</p>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* Pay with credit debit card details */}
+                        {paymentMethod === "card" && (
+                          <motion.div
+                            key="pay-card"
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="space-y-3 pt-1 text-left"
+                          >
+                            <div className="space-y-1">
+                              <label htmlFor="card-number-input" className="block text-[9px] font-bold uppercase tracking-widest text-slate-500">16-Digit Card Number</label>
+                              <input
+                                id="card-number-input"
+                                type="text"
+                                placeholder="4111 2222 3333 4444"
+                                value={cardDetails.number}
+                                onChange={(e) => setCardDetails({ ...cardDetails, number: e.target.value })}
+                                className="w-full rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 font-medium px-3.5 py-2.5 text-slate-900"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-35 grid-cols-2 gap-3.5">
+                              <div className="space-y-1">
+                                <label htmlFor="card-expiry-input" className="block text-[9px] font-bold uppercase tracking-widest text-slate-500">Expiry (MM/YY)</label>
+                                <input
+                                  id="card-expiry-input"
+                                  type="text"
+                                  placeholder="12/28"
+                                  value={cardDetails.expiry}
+                                  onChange={(e) => setCardDetails({ ...cardDetails, expiry: e.target.value })}
+                                  className="w-full rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 text-center font-medium px-3.5 py-2.5 text-slate-900"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label htmlFor="card-cvv-input" className="block text-[9px] font-bold uppercase tracking-widest text-slate-500">CVV Source Code</label>
+                                <input
+                                  id="card-cvv-input"
+                                  type="password"
+                                  placeholder="•••"
+                                  maxLength={3}
+                                  value={cardDetails.cvv}
+                                  onChange={(e) => setCardDetails({ ...cardDetails, cvv: e.target.value })}
+                                  className="w-full rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 text-center font-medium px-3.5 py-2.5 text-slate-900"
+                                />
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+
+                      </AnimatePresence>
                     </div>
-                  </div>
 
-                  {/* Special Requests */}
-                  <div className="space-y-1">
-                    <label htmlFor="notes-textarea" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">Special Requests? (Optional)</label>
-                    <textarea
-                      id="notes-textarea"
-                      rows={1}
-                      placeholder="e.g. Need rectangular cove, space for strip lighting."
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      className="w-full rounded-xl px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500/20 focus:border-amber-500 font-medium resize-none"
-                    />
-                  </div>
+                    {/* Staging Salt Key secret display */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-left font-mono text-[9px] text-slate-400 space-y-0.5 leading-normal">
+                      <span className="font-bold uppercase text-slate-600 block">🔒 SHA256 Encryption Security Protocol:</span>
+                      <p>Secret Salt: REACT_APP_PHONEPE_SALT_KEY (Staging Profile Key)</p>
+                      <p className="overflow-hidden text-ellipsis whitespace-nowrap">Payload: {`btoa({merchantId: "SU2602241401026481883811", amount: 19900})`}</p>
+                    </div>
 
-                  {/* Submit CTA */}
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      id="callback-submit-btn"
-                      disabled={isSubmitting}
-                      className="w-full inline-flex justify-center items-center rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 px-5 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-amber-500/10 transition-all cursor-pointer uppercase tracking-wider"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
-                          Redirecting to Thank-You Page...
-                        </>
-                      ) : (
-                        "Request Callback"
-                      )}
-                    </button>
-                    <p className="mt-2 text-center text-[9px] text-slate-450 flex items-center justify-center gap-1 select-none font-mono uppercase tracking-widest">
-                      <Shield className="h-3 w-3 text-emerald-500" /> Secure Encryption
-                    </p>
-                  </div>
-                </form>
+                    {/* Dynamic Loader during authorization */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={handlePhonePePay}
+                        disabled={simulatedPaying}
+                        className="w-full inline-flex justify-center items-center gap-1.5 rounded-xl bg-[#6739b7] hover:bg-[#532ba0] text-white font-extrabold text-sm py-4 cursor-pointer shadow-lg hover:shadow-purple-700/10 transition-all uppercase tracking-wider relative overflow-hidden"
+                      >
+                        {simulatedPaying ? (
+                          <>
+                            <div className="mr-2 h-4.5 w-4.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            <span>CONTACTING BANK ENCRYPTIONS...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-4 w-4 shrink-0" /> Pay INR ₹199 Securely via PhonePe
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFlowStep("form")}
+                        disabled={simulatedPaying}
+                        className="w-full inline-flex justify-center items-center gap-1 hover:underline text-slate-500 hover:text-slate-800 text-[11px] font-bold font-mono uppercase tracking-wider mt-3 cursor-pointer"
+                      >
+                        ← Back & Edit Form Details
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* FLOW 3: SUCCESS CONFIRMATION FOR TECH AUDIT */}
+                {flowStep === "success" && (
+                  <motion.div
+                    key="step-success"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ type: "spring" }}
+                    className="p-8 text-center space-y-6"
+                  >
+                    {/* Rounded Success Accent */}
+                    <div className="mx-auto h-[72px] w-[72px] rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center animate-bounce">
+                      <CheckCircle className="h-10 w-10 shrink-0" />
+                    </div>
+
+                    <div className="space-y-2 max-w-md mx-auto text-center">
+                      <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-bold px-3 py-1 rounded-full uppercase tracking-widest select-none">
+                        Payment Authorized Successfully
+                      </span>
+                      <h3 className="font-display text-2xl font-extrabold text-white">
+                        Technical Site Audit Booked Let!
+                      </h3>
+                      <p className="text-sm font-semibold text-slate-300 leading-relaxed pt-2">
+                        Thank you! our operations team will connect with you to verify the details, and confirm the Audit timing.
+                      </p>
+                    </div>
+
+                    {/* Transaction specs summary */}
+                    <div className="bg-slate-950/60 border border-white/5 rounded-2xl p-4 text-left text-xs space-y-2.5 max-w-sm mx-auto font-mono">
+                      <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-slate-450 text-slate-400">Order ID:</span>
+                        <span className="font-bold text-slate-200">RX-AUD-202606-{Math.floor(Math.random() * 89999 + 10000)}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-slate-450 text-slate-400">Reference:</span>
+                        <span className="font-bold text-blue-400">PP-SU26-2241401</span>
+                      </div>
+                      <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-slate-450 text-slate-400">Amount Paid:</span>
+                        <span className="font-bold text-emerald-400">₹199.00 INCL GST</span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-450 text-slate-400">Locked Benefits:</span>
+                        <span className="text-white font-bold uppercase text-[9px] bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                          4D Laser mapping + itemized BOQ
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 max-w-xs mx-auto">
+                      <button
+                        type="button"
+                        onClick={handleCloseSuccess}
+                        className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-955 text-slate-950 font-extrabold text-xs py-3.5 shadow-lg tracking-wider uppercase cursor-pointer"
+                      >
+                        Done & Explore Showcase
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
             </div>
+
           </motion.div>
         </div>
       )}

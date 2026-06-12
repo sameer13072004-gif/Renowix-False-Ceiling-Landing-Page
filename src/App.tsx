@@ -215,7 +215,7 @@ export default function App() {
               id="header-cta"
               className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs font-extrabold px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1 cursor-pointer uppercase tracking-wider"
             >
-              Request Callback <ArrowUpRight className="h-3.5 w-3.5" />
+              Book Site Audit @ ₹199 <ArrowUpRight className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
@@ -242,26 +242,26 @@ export default function App() {
 
               {/* Conversational copy */}
               <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto lg:mx-0 leading-relaxed font-sans">
-                Hey, homeowners of Noida! Planning your new home interior or correcting a hot top-floor apartment? At <strong className="text-white font-semibold">{BRAND_NAME}</strong>, we install beautiful, fire-retardant, and moisture-immune false ceilings with zero-hassle dust shields. Fully transparent starting rates: premium Gypsum at <strong className="text-amber-400">₹99/sq.ft</strong>, POP at <strong className="text-amber-400">₹139/sq.ft</strong>, and design PVC at <strong className="text-amber-400">₹119/sq.ft</strong>. No middleman markups! (Rates exclude any lighting & wiring work).
+                Hey, homeowners of Noida! Planning your new home interior or correcting a hot top-floor apartment? At <strong className="text-white font-semibold">{BRAND_NAME}</strong>, we install elite, 100% fire-retardant, and moisture-immune false ceilings with zero-hassle vacuum dust-shields. Avoid commercial shortcuts and middleman markups! We provide original brand certificates for all frameworks. (All technical audits ignore lighting & wiring works).
               </p>
 
               {/* CTA Buttons bar */}
               <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 pt-3">
-                <a
-                  href="#estimator-parent"
-                  id="hero-quiz-btn"
-                  className="bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-slate-950 font-bold text-sm py-4 px-6 rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.01] transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center uppercase tracking-wider"
-                >
-                  <Sparkles className="h-4.5 w-4.5 text-slate-950 shrink-0" /> Estimate Room Rate Now
-                </a>
                 <button
                   type="button"
                   id="hero-callback-btn"
                   onClick={() => handleOpenCallback()}
-                  className="bg-white/5 hover:bg-white/10 text-white font-bold text-sm py-4 px-6 rounded-xl border border-white/8 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold text-sm py-4 px-6 rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.01] transition-all flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider text-center"
                 >
-                  Request Callback <Clock className="h-4 w-4 text-amber-500 shrink-0 animate-pulse" />
+                  Book Site Audit @ ₹199 <ArrowUpRight className="h-4 w-4 text-slate-950 shrink-0" />
                 </button>
+                <a
+                  href="#estimator-parent"
+                  id="hero-quiz-btn"
+                  className="bg-white/5 hover:bg-white/10 text-white font-bold text-sm py-4 px-6 rounded-xl border border-white/8 transition-all flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
+                >
+                  <Sparkles className="h-4.5 w-4.5 text-amber-400 shrink-0" /> Estimate Room Rate Now
+                </a>
               </div>
 
               {/* Proof badges */}
@@ -314,10 +314,10 @@ export default function App() {
                     <Zap className="h-4 w-4 animate-bounce text-amber-400 shrink-0" /> Love this exact ceiling layout?
                   </span>
                   <button
-                    onClick={() => handleOpenCallback("gypsum", "₹50,000 - ₹1,00,000")}
+                    onClick={() => handleOpenCallback("gypsum", "₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)")}
                     className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition-colors text-[10px] cursor-pointer"
                   >
-                    Match This Style
+                    Book Site Audit
                   </button>
                 </div>
               </div>
@@ -475,10 +475,10 @@ export default function App() {
                     <p className="text-zinc-300">{activeCeilingItem.bestFor}</p>
                   </div>
                   <button
-                    onClick={() => handleOpenCallback(activeCeilingItem.id)}
+                    onClick={() => handleOpenCallback(activeCeilingItem.id, "₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)")}
                     className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold px-5 py-3 rounded-xl transition-all cursor-pointer uppercase tracking-wider text-center"
                   >
-                    Request Callback Now
+                    Book Site Audit @ ₹199
                   </button>
                 </div>
               </div>
@@ -718,12 +718,12 @@ export default function App() {
                   id="bottom-accent-cta"
                   className="w-full sm:w-96 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs sm:text-sm px-6 py-4 rounded-xl shadow-lg transition-transform hover:scale-[1.01] flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
                 >
-                  Request Callback & Site Survey <ArrowUpRight className="h-4 w-4" />
+                  Book Technical Site Audit @ ₹199 <ArrowUpRight className="h-4 w-4" />
                 </button>
               </div>
               
               <p className="text-[10px] font-mono text-slate-450 uppercase tracking-widest">
-                ⏳ Fast replies! Specialists answer callback inquiries within 15 minutes max.
+                ⏳ Limited Slots! Only 1 site audit slot remains this week based on local Noida queues.
               </p>
             </div>
           </div>
@@ -777,21 +777,6 @@ export default function App() {
           </div>
         </div>
       </footer>
-
-      {/* Floating Action Button (Callback shortcut) */}
-      <div className="fixed bottom-6 right-6 z-40 select-none">
-        <button
-          onClick={() => handleOpenCallback()}
-          id="floating-cta"
-          className="bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 rounded-full p-4 shadow-2xl hover:shadow-amber-500/20 transition-all hover:scale-105 flex items-center justify-center gap-1.5 cursor-pointer"
-          title="Free Measurement Callback"
-        >
-          <Phone className="h-5 w-5 shrink-0" />
-          <span className="text-xs font-extrabold uppercase tracking-wider hidden sm:inline leading-none ml-1">
-            Request Callback
-          </span>
-        </button>
-      </div>
 
       {/* Interactive Modal Callback Dialog */}
       <CallbackFormModal
