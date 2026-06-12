@@ -18,37 +18,32 @@ export default defineConfig(() => {
               
               const executePay = async (name: string, phone: string, amount: number) => {
                 try {
-                  // Read env vars or use test/live credentials
-                  const merchantId = process.env.PHONEPE_MERCHANT_ID || "PGTESTPAYUAT86"; 
-                  const saltKey = process.env.PHONEPE_SALT_KEY || "099eb0cd-02cf-4e2a-8aca-3e6c6aff0399"; // default preprod salt key for seamless local test
-                  const saltIndex = process.env.PHONEPE_SALT_INDEX || "1";
+                 // Read live production credentials directly from environment variables
+const merchantId = process.env.PHONEPE_MERCHANT_ID; 
+const saltKey = process.env.PHONEPE_SALT_KEY;
+const saltIndex = process.env.PHONEPE_SALT_INDEX || "1";
 
-                  const isProd = merchantId && !merchantId.startsWith("PGTEST");
-                  const phonepeHost = isProd 
-                    ? "https://api.phonepe.com/apis/hermes/pg/v1/pay"
-                    : "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
+// Explicitly lock target to PhonePe Live Production Gateway API
+const phonepeHost = "https://api.phonepe.com/apis/hermes/pg/v1/pay";
 
-                  // In local sandbox, we can proceed with ease!
-                  const merchantTransactionId = "RX" + Date.now() + Math.floor(Math.random() * 1000);
-                  const merchantUserId = "U" + Math.floor(Math.random() * 1000000);
-                  const amountInPaise = Math.round(amount * 100);
+// Generate transactional variables safely before building payload
+const merchantTransactionId = "RX" + Date.now() + Math.floor(Math.random() * 1000);
+const merchantUserId = "U" + Math.floor(Math.random() * 1000000);
+const amountInPaise = Math.round(amount * 100);
 
-                  // Hardcoded absolute paths as requested to bypass dynamic host detection and avoid firewall issues
-                  const DOMAIN = "https://renowix.in";
-
-                  const requestPayload = {
-                    merchantId,
-                    merchantTransactionId,
-                    merchantUserId,
-                    amount: amountInPaise,
-                    redirectUrl: `${DOMAIN}/false-ceiling`,
-                    redirectMode: "REDIRECT",
-                    callbackUrl: `${DOMAIN}/api/webhook`,
-                    mobileNumber: phone ? phone.replace(/\D/g, "").slice(-10) : "9999999999",
-                    paymentInstrument: {
-                      type: "PAY_PAGE"
-                    }
-                  };
+// Request payload structure - Sanitized for PhonePe Standard PAY_PAGE Schema
+const requestPayload = {
+  merchantId,
+  merchantTransactionId,
+  merchantUserId,
+  amount: amountInPaise,
+  redirectUrl: `https://www.renowix.in/false-ceiling`,
+  callbackUrl: `https://www.renowix.in/api/webhook`,
+  mobileNumber: phone ? phone.replace(/\D/g, "").slice(-10) : "9999999999",
+  paymentInstrument: {
+    type: "PAY_PAGE"
+  }
+};
 
                   const base64Payload = Buffer.from(JSON.stringify(requestPayload)).toString("base64");
                   const hashString = base64Payload + "/pg/v1/pay" + saltKey;

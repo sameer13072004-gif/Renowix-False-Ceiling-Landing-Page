@@ -57,7 +57,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       merchantUserId,
       amount: amountInPaise,
       redirectUrl: `${DOMAIN}/false-ceiling`, // This will now correctly compile to https://www.renowix.in/false-ceiling
-      redirectMode: "REDIRECT",
       callbackUrl: `${DOMAIN}/api/webhook`,
       mobileNumber: phone ? phone.replace(/\D/g, "").slice(-10) : "9999999999",
       paymentInstrument: {
