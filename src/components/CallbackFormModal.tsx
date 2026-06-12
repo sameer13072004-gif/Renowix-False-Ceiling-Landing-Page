@@ -25,10 +25,10 @@ interface CallbackFormModalProps {
   onClose: () => void;
   initialType?: string;
   initialBudget?: string;
-  initialStep?: "form" | "phonepe_checkout" | "success";
+  initialStep?: "form" | "success";
 }
 
-type ModalFlowStep = "form" | "phonepe_checkout" | "success";
+type ModalFlowStep = "form" | "success";
 
 export default function CallbackFormModal({
   isOpen,
@@ -51,13 +51,18 @@ export default function CallbackFormModal({
   // Timer: 15 minutes = 900 seconds
   const [secondsLeft, setSecondsLeft] = useState<number>(900);
   
-  // Selected Payment Method inside PhonePe portal
-  const [paymentMethod, setPaymentMethod] = useState<"upi" | "qr" | "card">("upi");
-  const [cardDetails, setCardDetails] = useState({ number: "", expiry: "", cvv: "" });
-  const [selectedUpiApp, setSelectedUpiApp] = useState("phonepe");
-  const [simulatedPaying, setSimulatedPaying] = useState(false);
   const [isConnectingGateway, setIsConnectingGateway] = useState(false);
   const [gatewayError, setGatewayError] = useState("");
+
+  // Legacy simulation references kept as dead code constants to satisfy compiler checking
+  const paymentMethod = "upi" as "upi" | "qr" | "card";
+  const setPaymentMethod = (v: any) => void v;
+  const cardDetails = { number: "", expiry: "", cvv: "" };
+  const setCardDetails = (v: any) => void v;
+  const simulatedPaying = false;
+  const selectedUpiApp = "phonepe";
+  const setSelectedUpiApp = (v: any) => void v;
+  const handlePhonePePay = () => {};
 
   // Form Fields State
   const [formData, setFormData] = useState<CallbackRequest>({
@@ -129,8 +134,6 @@ export default function CallbackFormModal({
     setGatewayError("");
 
     try {
-      // In local dev, if Vercel serverless isn't running or configured yet, we verify.
-      // Call the live Vercel pay serverless endpoint
       const response = await fetch("/api/pay", {
         method: "POST",
         headers: {
@@ -156,27 +159,14 @@ export default function CallbackFormModal({
         // Trigger dynamic redirect to the secure PhonePe interface (UPI scan / apps / cards)
         window.location.href = data.redirectUrl;
       } else {
-        // If credentials aren't set up yet, fallback to the sandbox simulator gracefully
         const errMsg = data.error || "PhonePe API declined initiation request.";
-        console.warn(`${errMsg}. Gracefully falling back to staging sandbox simulation.`);
-        setFlowStep("phonepe_checkout");
+        setGatewayError(errMsg);
       }
     } catch (err: any) {
-      console.warn("API route not found or unreachable. Falling back to sandbox simulator.");
-      setFlowStep("phonepe_checkout");
+      setGatewayError("Gateway unreachable. Please check if your environment credentials are correct or if you are offline.");
     } finally {
       setIsConnectingGateway(false);
     }
-  };
-
-
-  const handlePhonePePay = () => {
-    setSimulatedPaying(true);
-    // Simulate real PG redirection and bank confirmation latency
-    setTimeout(() => {
-      setSimulatedPaying(false);
-      setFlowStep("success");
-    }, 1800);
   };
 
   const handleCloseSuccess = () => {
@@ -536,6 +526,16 @@ export default function CallbackFormModal({
                             />
                           </div>
 
+                          {gatewayError && (
+                            <div className="mb-3 bg-red-500/10 border border-red-500/25 p-3.5 rounded-xl text-left text-xs text-red-300 flex items-start gap-2 shadow-sm">
+                              <AlertTriangle className="h-4.5 w-4.5 text-red-400 shrink-0" />
+                              <div className="space-y-0.5">
+                                <p className="font-bold text-red-200">Gateway Connection Failed</p>
+                                <p className="opacity-95 leading-normal">{gatewayError}</p>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Button booking */}
                           <div className="pt-2">
                             <button
@@ -564,8 +564,8 @@ export default function CallbackFormModal({
                   </motion.div>
                 )}
 
-                {/* FLOW 2: PHONEPE GATEWAY SECURE INTEGRATION SANDBOX PORTAL */}
-                {flowStep === "phonepe_checkout" && (
+                {/* FLOW 2: PHONEPE GATEWAY SECURE INTEGRATION (SIMULATION DISABLED PER USER REQUEST) */}
+                {false && (
                   <motion.div
                     key="step-phonepe-checkout"
                     initial={{ opacity: 0, scale: 0.97 }}

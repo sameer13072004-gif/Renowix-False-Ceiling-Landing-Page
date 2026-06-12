@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const saltIndex = process.env.PHONEPE_SALT_INDEX || "1";
 
     // Setup URLs (Prod vs preprod fallback)
-    const isProd = process.env.NODE_ENV === "production" && process.env.PHONEPE_MERCHANT_ID && process.env.PHONEPE_MERCHANT_ID !== "PGTESTPAYUAT86";
+    const isProd = merchantId && !merchantId.startsWith("PGTEST");
     const phonepeHost = isProd 
       ? "https://api.phonepe.com/apis/hermes/pg/v1/pay"
       : "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
