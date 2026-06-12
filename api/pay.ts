@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const saltIndex = process.env.PHONEPE_SALT_INDEX || "1";
 
     // Setup URLs (Forced Live Production Gateway Only)
-    const phonepeHost = "https://api.phonepe.com/apis/hermes/pg/v1/pay";
+    const phonepeHost = "https://api.phonepe.com/apis/merchant-simulator/pg/v1/pay";
 
     if (!merchantId || !saltKey) {
       return res.status(500).json({ 
