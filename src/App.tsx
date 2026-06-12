@@ -34,6 +34,32 @@ export default function App() {
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState<boolean>(false);
   const [modalPreference, setModalPreference] = useState<string>("gypsum");
   const [modalBudget, setModalBudget] = useState<string>("₹25,000 - ₹50,000");
+  const [modalStep, setModalStep] = useState<"form" | "phonepe_checkout" | "success">("form");
+
+  // Read URL query parameters to handle returned checkout callbacks from PhonePe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("status") === "success") {
+      setModalStep("success");
+      setIsCallbackModalOpen(true);
+
+      // Attempt to restore submitted details to hydrate final success card
+      try {
+        const saved = localStorage.getItem("pending_booking_noida");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.ceilingTypeOfInterest) setModalPreference(parsed.ceilingTypeOfInterest);
+          if (parsed.budget) setModalBudget(parsed.budget);
+        }
+      } catch (e) {
+        console.warn("Hydrating pending transaction state failed:", e);
+      }
+
+      // Remove checkout flags dynamically to prevent modal popping on reload
+      const cleanUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
 
   // Dynamic Auto-height hook for clean WordPress/Elementor embedding without duplicate scrollbars
   useEffect(() => {
@@ -781,9 +807,13 @@ export default function App() {
       {/* Interactive Modal Callback Dialog */}
       <CallbackFormModal
         isOpen={isCallbackModalOpen}
-        onClose={() => setIsCallbackModalOpen(false)}
+        onClose={() => {
+          setIsCallbackModalOpen(false);
+          setModalStep("form");
+        }}
         initialType={modalPreference}
         initialBudget={modalBudget}
+        initialStep={modalStep}
       />
 
     </div>

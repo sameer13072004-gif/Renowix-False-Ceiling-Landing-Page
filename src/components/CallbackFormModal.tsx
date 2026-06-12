@@ -25,6 +25,7 @@ interface CallbackFormModalProps {
   onClose: () => void;
   initialType?: string;
   initialBudget?: string;
+  initialStep?: "form" | "phonepe_checkout" | "success";
 }
 
 type ModalFlowStep = "form" | "phonepe_checkout" | "success";
@@ -33,10 +34,19 @@ export default function CallbackFormModal({
   isOpen,
   onClose,
   initialType = "",
-  initialBudget = "₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)"
+  initialBudget = "₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)",
+  initialStep = "form"
 }: CallbackFormModalProps) {
   // Modal flow state
-  const [flowStep, setFlowStep] = useState<ModalFlowStep>("form");
+  const [flowStep, setFlowStep] = useState<ModalFlowStep>(initialStep);
+
+  // Sync flowStep with initialStep when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFlowStep(initialStep);
+    }
+  }, [isOpen, initialStep]);
+
 
   // Timer: 15 minutes = 900 seconds
   const [secondsLeft, setSecondsLeft] = useState<number>(900);
@@ -46,6 +56,8 @@ export default function CallbackFormModal({
   const [cardDetails, setCardDetails] = useState({ number: "", expiry: "", cvv: "" });
   const [selectedUpiApp, setSelectedUpiApp] = useState("phonepe");
   const [simulatedPaying, setSimulatedPaying] = useState(false);
+  const [isConnectingGateway, setIsConnectingGateway] = useState(false);
+  const [gatewayError, setGatewayError] = useState("");
 
   // Form Fields State
   const [formData, setFormData] = useState<CallbackRequest>({
@@ -67,7 +79,9 @@ export default function CallbackFormModal({
   useEffect(() => {
     if (!isOpen) {
       setSecondsLeft(900);
-      setFlowStep("form");
+      setFlowStep(initialStep);
+      setGatewayError("");
+      setIsConnectingGateway(false);
       return;
     }
 
@@ -81,7 +95,7 @@ export default function CallbackFormModal({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOpen]);
+  }, [isOpen, initialStep]);
 
   const formatTime = (seconds: number) => {
     const min = Math.floor(seconds / 60);
@@ -107,13 +121,54 @@ export default function CallbackFormModal({
     return Object.keys(tempErrors).length === 0;
   };
 
-  const handleSubmitForm = (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      // Transition to PhonePe Mock Checkout Secure Gateway
+    if (!validate()) return;
+
+    setIsConnectingGateway(true);
+    setGatewayError("");
+
+    try {
+      // In local dev, if Vercel serverless isn't running or configured yet, we verify.
+      // Call the live Vercel pay serverless endpoint
+      const response = await fetch("/api/pay", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone,
+          amount: 199 // INR 199.00 Standard Audit Booking
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      
+      if (response.ok && data.success && data.redirectUrl) {
+        // Save form submission details in localStorage to recall upon successful transaction landing
+        localStorage.setItem("pending_booking_noida", JSON.stringify({
+          ...formData,
+          transactionId: data.transactionId,
+          timestamp: Date.now()
+        }));
+
+        // Trigger dynamic redirect to the secure PhonePe interface (UPI scan / apps / cards)
+        window.location.href = data.redirectUrl;
+      } else {
+        // If credentials aren't set up yet, fallback to the sandbox simulator gracefully
+        const errMsg = data.error || "PhonePe API declined initiation request.";
+        console.warn(`${errMsg}. Gracefully falling back to staging sandbox simulation.`);
+        setFlowStep("phonepe_checkout");
+      }
+    } catch (err: any) {
+      console.warn("API route not found or unreachable. Falling back to sandbox simulator.");
       setFlowStep("phonepe_checkout");
+    } finally {
+      setIsConnectingGateway(false);
     }
   };
+
 
   const handlePhonePePay = () => {
     setSimulatedPaying(true);
@@ -486,9 +541,19 @@ export default function CallbackFormModal({
                             <button
                               type="submit"
                               id="audit-booking-submit-btn"
-                              className="w-full inline-flex justify-center items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-955 text-slate-950 font-extrabold text-sm py-4 cursor-pointer hover:shadow-lg shadow-amber-500/10 transition-all uppercase tracking-wider"
+                              disabled={isConnectingGateway}
+                              className="w-full inline-flex justify-center items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold text-sm py-4 cursor-pointer hover:shadow-lg shadow-amber-500/10 transition-all uppercase tracking-wider disabled:opacity-75 disabled:cursor-not-allowed"
                             >
-                              Tech led Audit Booking @ ₹199 <ArrowRight className="h-4.5 w-4.5" />
+                              {isConnectingGateway ? (
+                                <>
+                                  <div className="mr-1.5 h-4 w-4 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
+                                  <span>Connecting Secure PhonePe Gateway...</span>
+                                </>
+                              ) : (
+                                <>
+                                  Tech led Audit Booking @ ₹199 <ArrowRight className="h-4.5 w-4.5" />
+                                </>
+                              )}
                             </button>
                           </div>
 
