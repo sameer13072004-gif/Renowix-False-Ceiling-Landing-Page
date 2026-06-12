@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const amountInPaise = Math.round(amount * 100);
 
     // Fix: Match the exact verified Vercel production host
-    const DOMAIN = "https://www.renowix.in";
+    const DOMAIN = "https://renowix.in";
 
     // Request payload structure
     const requestPayload = {
@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       merchantTransactionId,
       merchantUserId,
       amount: amountInPaise,
-      redirectUrl: `${DOMAIN}/false-ceiling`, // This will now correctly compile to https://www.renowix.in/false-ceiling
+      redirectUrl: `${DOMAIN}/false-ceiling`, // This will now correctly compile to https://renowix.in/false-ceiling
       callbackUrl: `${DOMAIN}/api/webhook`,
       mobileNumber: phone ? phone.replace(/\D/g, "").slice(-10) : "9999999999",
       paymentInstrument: {

@@ -43,7 +43,7 @@ export default defineConfig(() => {
                   const amountInPaise = Math.round(amount * 100);
 
                   // 5. Hardcoded production targets to eliminate proxy / domain drops
-                  const DOMAIN = "https://www.renowix.in";
+                  const DOMAIN = "https://renowix.in";
 
                   // 6. Sanitized PhonePe Standard Hosted checkout schema (No illegal redirectMode parameter)
                   const requestPayload = {
