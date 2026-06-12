@@ -50,10 +50,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Amount to paise
     const amountInPaise = Math.round(amount * 100);
 
-    // Format callback and redirect back to the app domain url dynamically
-    const protocol = req.headers["x-forwarded-proto"] || "https";
-    const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:3000";
-    const appOrigin = `${protocol}://${host}`;
+    // Hardcoded absolute paths as requested to bypass dynamic host detection and avoid firewall issues
+    const DOMAIN = "https://renowix.in";
 
     // Request payload structure as required by PhonePe's Hosted Payment Page API (PAY_PAGE)
     const requestPayload = {
@@ -61,9 +59,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       merchantTransactionId,
       merchantUserId,
       amount: amountInPaise,
-      redirectUrl: `${appOrigin}/?status=success&txn=${merchantTransactionId}`,
+      redirectUrl: `${DOMAIN}/false-ceiling`,
       redirectMode: "REDIRECT",
-      callbackUrl: `${appOrigin}/api/pay-callback`,
+      callbackUrl: `${DOMAIN}/api/webhook`,
       mobileNumber: phone ? phone.replace(/\D/g, "").slice(-10) : "9999999999",
       paymentInstrument: {
         type: "PAY_PAGE"

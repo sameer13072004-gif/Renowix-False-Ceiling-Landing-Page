@@ -33,18 +33,17 @@ export default defineConfig(() => {
                   const merchantUserId = "U" + Math.floor(Math.random() * 1000000);
                   const amountInPaise = Math.round(amount * 100);
 
-                  const host = req.headers.host || "localhost:3000";
-                  const protocol = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
-                  const appOrigin = `${protocol}://${host}`;
+                  // Hardcoded absolute paths as requested to bypass dynamic host detection and avoid firewall issues
+                  const DOMAIN = "https://renowix.in";
 
                   const requestPayload = {
                     merchantId,
                     merchantTransactionId,
                     merchantUserId,
                     amount: amountInPaise,
-                    redirectUrl: `${appOrigin}/?status=success&txn=${merchantTransactionId}`,
+                    redirectUrl: `${DOMAIN}/false-ceiling`,
                     redirectMode: "REDIRECT",
-                    callbackUrl: `${appOrigin}/api/pay-callback`,
+                    callbackUrl: `${DOMAIN}/api/webhook`,
                     mobileNumber: phone ? phone.replace(/\D/g, "").slice(-10) : "9999999999",
                     paymentInstrument: {
                       type: "PAY_PAGE"
