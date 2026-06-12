@@ -47,16 +47,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Amount to paise
     const amountInPaise = Math.round(amount * 100);
 
-    // Hardcoded absolute paths as requested to bypass dynamic host detection and avoid firewall issues
-    const DOMAIN = "https://renowix.in";
+    // Fix: Match the exact verified Vercel production host
+    const DOMAIN = "https://www.renowix.in";
 
-    // Request payload structure as required by PhonePe's Hosted Payment Page API (PAY_PAGE)
+    // Request payload structure
     const requestPayload = {
       merchantId,
       merchantTransactionId,
       merchantUserId,
       amount: amountInPaise,
-      redirectUrl: `${DOMAIN}/false-ceiling`,
+      redirectUrl: `${DOMAIN}/false-ceiling`, // This will now correctly compile to https://www.renowix.in/false-ceiling
       redirectMode: "REDIRECT",
       callbackUrl: `${DOMAIN}/api/webhook`,
       mobileNumber: phone ? phone.replace(/\D/g, "").slice(-10) : "9999999999",
