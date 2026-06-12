@@ -37,9 +37,13 @@ export default defineConfig(() => {
                   const merchantUserId = "U" + Math.floor(Math.random() * 1000000);
                   const amountInPaise = Math.round(amount * 100);
 
-                  const host = req.headers.host || "localhost:3000";
-                  const protocol = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
-                  const appOrigin = `${protocol}://${host}`;
+                  // Format callback and redirect back to the app domain url
+                  const productionDomain = "https://renowix.in";
+                  const appOrigin = isProd ? productionDomain : (() => {
+                    const host = req.headers.host || "localhost:3000";
+                    const protocol = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
+                    return `${protocol}://${host}`;
+                  })();
 
                   const requestPayload = {
                     merchantId,

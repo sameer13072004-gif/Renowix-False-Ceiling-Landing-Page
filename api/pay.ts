@@ -47,10 +47,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Amount to paise
     const amountInPaise = Math.round(amount * 100);
 
-    // Format callback and redirect back to the app domain url dynamically
-    const protocol = req.headers["x-forwarded-proto"] || "https";
-    const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:3000";
-    const appOrigin = `${protocol}://${host}`;
+    // Format callback and redirect back to the app domain url
+    const productionDomain = "https://renowix.in";
+    const appOrigin = isProd ? productionDomain : (() => {
+      const protocol = req.headers["x-forwarded-proto"] || "https";
+      const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:3000";
+      return `${protocol}://${host}`;
+    })();
 
     // Request payload structure as required by PhonePe's Hosted Payment Page API (PAY_PAGE)
     const requestPayload = {
