@@ -13,15 +13,11 @@ export default defineConfig(() => {
         name: 'api-pay-middleware',
         configureServer(server) {
           server.middlewares.use((req, res, next) => {
-            if (req.url?.startsWith('/api/pay') && req.method === 'POST') {
-              let body = '';
-              req.on('data', chunk => {
-                body += chunk;
-              });
-              req.on('end', async () => {
+            if (req.url && req.url.startsWith('/api/pay') && (req.method === 'POST' || req.method === 'GET')) {
+              const isGet = req.method === 'GET';
+              
+              const executePay = async (name: string, phone: string, amount: number) => {
                 try {
-                  const { name, phone, amount = 199 } = body ? JSON.parse(body) : {};
-                  
                   // Read env vars or use test/live credentials
                   const merchantId = process.env.PHONEPE_MERCHANT_ID || "PGTESTPAYUAT86"; 
                   const saltKey = process.env.PHONEPE_SALT_KEY || "099eb0cd-02cf-4e2a-8aca-3e6c6aff0399"; // default preprod salt key for seamless local test
@@ -37,13 +33,9 @@ export default defineConfig(() => {
                   const merchantUserId = "U" + Math.floor(Math.random() * 1000000);
                   const amountInPaise = Math.round(amount * 100);
 
-                  // Format callback and redirect back to the app domain url
-                  const productionDomain = "https://renowix.in";
-                  const appOrigin = isProd ? productionDomain : (() => {
-                    const host = req.headers.host || "localhost:3000";
-                    const protocol = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
-                    return `${protocol}://${host}`;
-                  })();
+                  const host = req.headers.host || "localhost:3000";
+                  const protocol = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
+                  const appOrigin = `${protocol}://${host}`;
 
                   const requestPayload = {
                     merchantId,
@@ -75,28 +67,71 @@ export default defineConfig(() => {
 
                   const responseData = await apiResponse.json() as any;
 
-                  res.setHeader('Content-Type', 'application/json');
                   res.setHeader('Access-Control-Allow-Origin', '*');
                   if (responseData.success && responseData.data?.instrumentResponse?.redirectInfo?.url) {
-                    res.statusCode = 200;
-                    res.end(JSON.stringify({
-                      success: true,
-                      redirectUrl: responseData.data.instrumentResponse.redirectInfo.url,
-                      transactionId: merchantTransactionId
-                    }));
+                    if (isGet) {
+                      res.writeHead(302, { Location: responseData.data.instrumentResponse.redirectInfo.url });
+                      res.end();
+                    } else {
+                      res.setHeader('Content-Type', 'application/json');
+                      res.statusCode = 200;
+                      res.end(JSON.stringify({
+                        success: true,
+                        redirectUrl: responseData.data.instrumentResponse.redirectInfo.url,
+                        transactionId: merchantTransactionId
+                      }));
+                    }
                   } else {
-                    res.statusCode = 400;
-                    res.end(JSON.stringify({
-                      success: false,
-                      error: responseData.message || "Failed to initiate payment transaction with PhonePe."
-                    }));
+                    if (isGet) {
+                      res.setHeader('Content-Type', 'text/html');
+                      res.statusCode = 400;
+                      res.end(`
+                        <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; padding: 2rem; max-width: 600px; margin: 4rem auto; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                          <h2 style="color: #9b2c2c; margin-top: 0; font-size: 1.5rem; border-bottom: 2px solid #fed7d7; padding-bottom: 0.5rem;">[Local Dev] PhonePe API Validation Failed</h2>
+                          <p style="margin-top: 1rem;"><strong>Configuration Used Local Dev:</strong></p>
+                          <ul style="line-height: 1.6; color: #2d3748;">
+                            <li><strong>Merchant ID:</strong> <code>${merchantId}</code></li>
+                            <li><strong>Salt Index:</strong> <code>${saltIndex}</code></li>
+                            <li><strong>Salt Key Length:</strong> <code>${saltKey ? saltKey.length : 0} characters</code></li>
+                          </ul>
+                          <p style="margin-top: 1rem;"><strong>PhonePe Server Error Response:</strong></p>
+                          <div style="background: #1a202c; color: #f7fafc; padding: 1rem; border-radius: 6px; font-family: monospace; font-size: 0.85rem; overflow-x: auto; margin: 1rem 0;">
+                            ${JSON.stringify(responseData, null, 2)}
+                          </div>
+                        </div>
+                      `);
+                    } else {
+                      res.setHeader('Content-Type', 'application/json');
+                      res.statusCode = 400;
+                      res.end(JSON.stringify({
+                        success: false,
+                        error: responseData.message || "Failed to initiate payment transaction with PhonePe."
+                      }));
+                    }
                   }
                 } catch (err: any) {
                   res.statusCode = 500;
                   res.setHeader('Content-Type', 'application/json');
                   res.end(JSON.stringify({ success: false, error: err.message }));
                 }
-              });
+              };
+
+              if (isGet) {
+                const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost:3000'}`);
+                const name = urlObj.searchParams.get('name') || 'Diagnostic Test User';
+                const phone = urlObj.searchParams.get('phone') || '9999999999';
+                const amount = Number(urlObj.searchParams.get('amount')) || 199;
+                executePay(name, phone, amount);
+              } else {
+                let body = '';
+                req.on('data', chunk => {
+                  body += chunk;
+                });
+                req.on('end', async () => {
+                  const parsed = body ? JSON.parse(body) : {};
+                  executePay(parsed.name || 'Diagnostic', parsed.phone || '9999999999', parsed.amount || 199);
+                });
+              }
             } else {
               next();
             }

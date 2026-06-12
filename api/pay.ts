@@ -15,12 +15,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  if (req.method !== "POST") {
+  // Support both POST (for checkouts) and GET (for direct bypass diagnostics check links)
+  if (req.method !== "POST" && req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const isGet = req.method === "GET";
+
   try {
-    const { name, phone, amount = 199 } = req.body || {};
+    const { name = "Diagnostic Test User", phone = "9999999999", amount = 199 } = isGet ? req.query : (req.body || {});
 
     // Fetch PhonePe merchant credentials from environment variables
     const merchantId = process.env.PHONEPE_MERCHANT_ID || "PGTESTPAYUAT86"; 
@@ -47,13 +50,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Amount to paise
     const amountInPaise = Math.round(amount * 100);
 
-    // Format callback and redirect back to the app domain url
-    const productionDomain = "https://renowix.in";
-    const appOrigin = isProd ? productionDomain : (() => {
-      const protocol = req.headers["x-forwarded-proto"] || "https";
-      const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:3000";
-      return `${protocol}://${host}`;
-    })();
+    // Format callback and redirect back to the app domain url dynamically
+    const protocol = req.headers["x-forwarded-proto"] || "https";
+    const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:3000";
+    const appOrigin = `${protocol}://${host}`;
 
     // Request payload structure as required by PhonePe's Hosted Payment Page API (PAY_PAGE)
     const requestPayload = {
@@ -90,12 +90,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const responseData = (await apiResponse.json()) as any;
 
     if (responseData.success && responseData.data?.instrumentResponse?.redirectInfo?.url) {
+      if (isGet) {
+        res.writeHead(302, { Location: responseData.data.instrumentResponse.redirectInfo.url });
+        return res.end();
+      }
       return res.status(200).json({
         success: true,
         redirectUrl: responseData.data.instrumentResponse.redirectInfo.url,
         transactionId: merchantTransactionId
       });
     } else {
+      if (isGet) {
+        res.setHeader("Content-Type", "text/html");
+        return res.status(400).send(`
+          <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; padding: 2rem; max-width: 600px; margin: 4rem auto; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <h2 style="color: #9b2c2c; margin-top: 0; font-size: 1.5rem; border-bottom: 2px solid #fed7d7; padding-bottom: 0.5rem;">PhonePe API Validation Failed</h2>
+            <p style="margin-top: 1rem;"><strong>Configuration Used:</strong></p>
+            <ul style="line-height: 1.6; color: #2d3748;">
+              <li><strong>Merchant ID:</strong> <code>${merchantId}</code></li>
+              <li><strong>Salt Index:</strong> <code>${saltIndex}</code></li>
+              <li><strong>Salt Key Length:</strong> <code>${saltKey ? saltKey.length : 0} characters</code> (Verify the exact string!)</li>
+            </ul>
+            <p style="margin-top: 1rem;"><strong>PhonePe Server Raw Error Response:</strong></p>
+            <div style="background: #1a202c; color: #f7fafc; padding: 1rem; border-radius: 6px; font-family: monospace; font-size: 0.85rem; overflow-x: auto; margin: 1rem 0;">
+              ${JSON.stringify(responseData, null, 2)}
+            </div>
+            <p style="margin-top: 2rem; font-size: 0.9rem; color: #4a5568; line-height: 1.5;">This diagnostic page proves your Vercel endpoint is active. However, PhonePe is rejecting the transaction because either the credentials are sandbox and you are sending them to production, or vice versa, or there is an encoding/HMAC verification mismatch. Check that you haven't included extra spaces, brackets, or newline characters in your environment variables.</p>
+          </div>
+        `);
+      }
       return res.status(400).json({
         success: false,
         error: responseData.message || "Failed to initiate payment transaction with PhonePe."
