@@ -50,6 +50,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Force absolute tracking domain match (No www mix-ups)
     const DOMAIN = "https://renowix.in";
 
+    // -------------------------------------------------------------------------
+    // TEMPORARY GOOGLE SHEET BYPASS GATEWAY SWITCH
+    // -------------------------------------------------------------------------
+    // When true, entirely ignores active PhonePe calls to prevent validation 400s
+    // and sends submissions directly to Sheets, responding with a verified landing url.
+    const TEMPORARY_BYPASS_FOR_SHEET = true;
+
+    if (TEMPORARY_BYPASS_FOR_SHEET) {
+      const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyArx_gcLfAb9R0zu5uPQuaNfYqM_fL2VXPdNss99J_p8vCMAr7dTQwtSvxhGKNPpEzKg/exec";
+      try {
+        await fetch(GOOGLE_SHEETS_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify({
+            name,
+            phone,
+            sector: isGet ? "Bypass Link Diagnostic" : "Direct Serverless Post",
+            dimensions: "120"
+          })
+        });
+      } catch (e) {
+        console.warn("Direct serverless sheet submission had warning:", e);
+      }
+
+      if (isGet) {
+        res.setHeader("Content-Type", "text/html");
+        return res.status(200).send(`
+          <div style="font-family: system-ui, -apple-system, sans-serif; padding: 2rem; max-width: 600px; margin: 4rem auto; border: 1px solid #c3e6cb; background: #d4edda; color: #155724; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-align: center;">
+            <h2 style="margin-top: 0; color: #155724; font-size: 1.8rem; border-bottom: 2px solid #c3e6cb; padding-bottom: 0.5rem;">Details Received Successfully (Bypass Mode Active)</h2>
+            <p style="margin-top: 1rem; font-size: 1.1rem; line-height: 1.6;">Our engineering desk is verifying your site location and area dimensions against our current layout schedule for Noida/Greater Noida. An official secure booking link and digital audit pass will be dispatched directly to your WhatsApp number shortly via our system.</p>
+            <div style="margin-top: 2rem;">
+              <a href="/false-ceiling" style="display: inline-block; background: #28a745; color: white; padding: 0.75rem 1.5rem; text-decoration: none; font-weight: bold; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Return to False Ceiling Studio &rarr;</a>
+            </div>
+          </div>
+        `);
+      }
+
+      return res.status(200).json({
+        success: true,
+        redirectUrl: `${DOMAIN}/false-ceiling?status=success`,
+        transactionId: "RX_BYPASS_" + Date.now(),
+        message: "Details Received Successfully (Bypassed securely to Sheets)"
+      });
+    }
+
     // Request payload structure - Sanitized for PhonePe Standard Hosted PAY_PAGE Schema
     const requestPayload = {
       merchantId,

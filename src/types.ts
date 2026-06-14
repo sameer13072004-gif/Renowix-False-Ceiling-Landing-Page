@@ -32,6 +32,7 @@ export interface CallbackRequest {
   ceilingTypeOfInterest: string;
   notes: string;
   siteAuditTime: string; // Changed from callbackTime
+  dimensions?: string;
 }
 
 export interface Testimonial {

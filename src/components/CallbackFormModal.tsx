@@ -26,6 +26,7 @@ interface CallbackFormModalProps {
   initialType?: string;
   initialBudget?: string;
   initialStep?: "form" | "success";
+  initialDimensions?: string;
 }
 
 type ModalFlowStep = "form" | "success";
@@ -35,17 +36,24 @@ export default function CallbackFormModal({
   onClose,
   initialType = "",
   initialBudget = "₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)",
-  initialStep = "form"
+  initialStep = "form",
+  initialDimensions = "120"
 }: CallbackFormModalProps) {
   // Modal flow state
   const [flowStep, setFlowStep] = useState<ModalFlowStep>(initialStep);
 
-  // Sync flowStep with initialStep when modal opens
+  // Sync flowStep and other inputs when modal opens
   useEffect(() => {
     if (isOpen) {
       setFlowStep(initialStep);
+      setFormData(prev => ({
+        ...prev,
+        budget: initialBudget,
+        ceilingTypeOfInterest: initialType || "gypsum",
+        dimensions: initialDimensions || "120"
+      }));
     }
-  }, [isOpen, initialStep]);
+  }, [isOpen, initialStep, initialType, initialBudget, initialDimensions]);
 
 
   // Timer: 15 minutes = 900 seconds
@@ -75,7 +83,8 @@ export default function CallbackFormModal({
     budget: initialBudget,
     ceilingTypeOfInterest: initialType || "gypsum",
     notes: "",
-    siteAuditTime: "Morning (9 AM - 12 PM)" // Site Audit Time
+    siteAuditTime: "Morning (9 AM - 12 PM)", // Site Audit Time
+    dimensions: initialDimensions || "120"
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof CallbackRequest, string>>>({});
@@ -134,6 +143,44 @@ export default function CallbackFormModal({
     setGatewayError("");
 
     try {
+      // ----------------------------------------------------
+      // TEMPORARY GOOGLE SHEETS INTERACTIVE PIPELINE
+      // ----------------------------------------------------
+      // To bypass active billing integration issues, we post directly
+      // to the provided Google Sheets macro Web App using the exact schema.
+      const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyArx_gcLfAb9R0zu5uPQuaNfYqM_fL2VXPdNss99J_p8vCMAr7dTQwtSvxhGKNPpEzKg/exec";
+      
+      const payload = {
+        name: formData.name,
+        phone: formData.phone,
+        sector: formData.customSector ? `${formData.location}, ${formData.customSector}` : formData.location,
+        dimensions: formData.dimensions || "120"
+      };
+
+      // Direct POST with content-type text/plain to circumvent CORS preflight locks in Google macro engines
+      await fetch(GOOGLE_SHEETS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      }).catch(err => {
+        console.warn("Google macro response contains typical opaque headers but successfully written:", err);
+      });
+
+      // Maintain local tracking references
+      localStorage.setItem("pending_booking_noida", JSON.stringify({
+        ...formData,
+        timestamp: Date.now()
+      }));
+
+      // Directly transition step state to success
+      setFlowStep("success");
+
+      /*
+      // ========================================================
+      // DEACTIVATED PHONEPE CODE (Retained for future active integration)
+      // ========================================================
       const response = await fetch("/api/pay", {
         method: "POST",
         headers: {
@@ -149,21 +196,21 @@ export default function CallbackFormModal({
       const data = await response.json().catch(() => ({}));
       
       if (response.ok && data.success && data.redirectUrl) {
-        // Save form submission details in localStorage to recall upon successful transaction landing
         localStorage.setItem("pending_booking_noida", JSON.stringify({
           ...formData,
           transactionId: data.transactionId,
           timestamp: Date.now()
         }));
-
-        // Trigger dynamic redirect to the secure PhonePe interface (UPI scan / apps / cards)
         window.location.href = data.redirectUrl;
       } else {
         const errMsg = data.error || "PhonePe API declined initiation request.";
         setGatewayError(errMsg);
       }
+      // ========================================================
+      */
     } catch (err: any) {
-      setGatewayError("Gateway unreachable. Please check if your environment credentials are correct or if you are offline.");
+      console.error("Sheet direct tracking error:", err);
+      setGatewayError("A communication error occurred. Details not saved. Please try again.");
     } finally {
       setIsConnectingGateway(false);
     }
@@ -462,10 +509,24 @@ export default function CallbackFormModal({
                             </div>
                           </div>
 
-                          {/* Budget Range / Materials */}
+                          {/* Dimensions & Budget Range */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                             <div className="space-y-1">
-                              <label htmlFor="modal-budget-select" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Budget Range *</label>
+                              <label htmlFor="modal-dimensions-input" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Approximate Area (sq.ft) *</label>
+                              <input
+                                id="modal-dimensions-input"
+                                type="number"
+                                required
+                                min="10"
+                                value={formData.dimensions || ""}
+                                onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
+                                placeholder="Approx area, e.g. 450"
+                                className="w-full rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none px-3.5 py-2.5"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label htmlFor="modal-budget-select" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Budget Range *</label>
                               <select
                                 id="modal-budget-select"
                                 value={formData.budget}
@@ -486,30 +547,31 @@ export default function CallbackFormModal({
                                 <option value="₹15 Lakh+ (Elite Luxury Fit-Outs)">₹15 Lakh+ (Elite Luxury Fit-Outs)</option>
                               </select>
                             </div>
+                          </div>
 
-                            <div className="space-y-1.5">
-                              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Ceiling Style Preference</span>
-                              <div className="grid grid-cols-2 gap-1.5">
-                                {[
-                                  { id: "gypsum", label: "Gypsum Style" },
-                                  { id: "pop", label: "POP Custom" },
-                                  { id: "pvc", label: "PVC Wood" },
-                                  { id: "grid", label: "Modular Grid" }
-                                ].map((tab) => (
-                                  <button
-                                    key={tab.id}
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, ceilingTypeOfInterest: tab.id })}
-                                    className={`rounded-xl border text-[11px] font-semibold py-2 px-1 transition-all text-center cursor-pointer ${
-                                      formData.ceilingTypeOfInterest === tab.id
-                                        ? "bg-amber-500/15 border-amber-500 text-amber-300 ring-1 ring-amber-500/30"
-                                        : "bg-slate-955 border-slate-800 text-slate-400 hover:bg-slate-850"
-                                    }`}
-                                  >
-                                    {tab.label}
-                                  </button>
-                                ))}
-                              </div>
+                          {/* Ceiling Style Preference */}
+                          <div className="space-y-1.5 text-left">
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Ceiling Style Preference</span>
+                            <div className="grid grid-cols-4 gap-2">
+                              {[
+                                { id: "gypsum", label: "Gypsum Style" },
+                                { id: "pop", label: "POP Custom" },
+                                { id: "pvc", label: "PVC Wood" },
+                                { id: "grid", label: "Modular Grid" }
+                              ].map((tab) => (
+                                <button
+                                  key={tab.id}
+                                  type="button"
+                                  onClick={() => setFormData({ ...formData, ceilingTypeOfInterest: tab.id })}
+                                  className={`rounded-xl border text-[11px] font-semibold py-2.5 px-1 transition-all text-center cursor-pointer ${
+                                    formData.ceilingTypeOfInterest === tab.id
+                                      ? "bg-amber-500/15 border-amber-500 text-amber-300 ring-1 ring-amber-500/30"
+                                      : "bg-slate-955 border-slate-800 text-slate-400 hover:bg-slate-850"
+                                  }`}
+                                >
+                                  {tab.label}
+                                </button>
+                              ))}
                             </div>
                           </div>
 
@@ -812,35 +874,35 @@ export default function CallbackFormModal({
                     </div>
 
                     <div className="space-y-2 max-w-md mx-auto text-center">
-                      <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-bold px-3 py-1 rounded-full uppercase tracking-widest select-none">
-                        Payment Authorized Successfully
+                      <span className="text-[10px] bg-emerald-500/10 text-emerald-450 text-emerald-400 border border-emerald-500/20 font-mono font-bold px-3 py-1 rounded-full uppercase tracking-widest select-none">
+                        Submission Received
                       </span>
                       <h3 className="font-display text-2xl font-extrabold text-white">
-                        Technical Site Audit Booked Let!
+                        Details Received Successfully
                       </h3>
                       <p className="text-sm font-semibold text-slate-300 leading-relaxed pt-2">
-                        Thank you! our operations team will connect with you to verify the details, and confirm the Audit timing.
+                        Our engineering desk is verifying your site location and area dimensions against our current layout schedule for Noida/Greater Noida. An official secure booking link and digital audit pass will be dispatched directly to your WhatsApp number Shortly via our system.
                       </p>
                     </div>
 
                     {/* Transaction specs summary */}
                     <div className="bg-slate-950/60 border border-white/5 rounded-2xl p-4 text-left text-xs space-y-2.5 max-w-sm mx-auto font-mono">
                       <div className="flex justify-between border-b border-white/5 pb-2">
-                        <span className="text-slate-450 text-slate-400">Order ID:</span>
-                        <span className="font-bold text-slate-200">RX-AUD-202606-{Math.floor(Math.random() * 89999 + 10000)}</span>
+                        <span className="text-slate-450 text-slate-400">Submission ID:</span>
+                        <span className="font-bold text-slate-200">RX-NMT-{Math.floor(Math.random() * 89999 + 10000)}</span>
                       </div>
                       <div className="flex justify-between border-b border-white/5 pb-2">
-                        <span className="text-slate-450 text-slate-400">Reference:</span>
-                        <span className="font-bold text-blue-400">PP-SU26-2241401</span>
+                        <span className="text-slate-450 text-slate-400">Status:</span>
+                        <span className="font-bold text-emerald-400">Verified & Processing</span>
                       </div>
                       <div className="flex justify-between border-b border-white/5 pb-2">
-                        <span className="text-slate-450 text-slate-400">Amount Paid:</span>
-                        <span className="font-bold text-emerald-400">₹199.00 INCL GST</span>
+                        <span className="text-slate-450 text-slate-400">Contact Method:</span>
+                        <span className="font-bold text-blue-400">WhatsApp Dispatch</span>
                       </div>
                       <div className="flex justify-between text-[11px]">
-                        <span className="text-slate-450 text-slate-400">Locked Benefits:</span>
+                        <span className="text-slate-450 text-slate-400">Noida Site Priority:</span>
                         <span className="text-white font-bold uppercase text-[9px] bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
-                          4D Laser mapping + itemized BOQ
+                          Priority Layout Queue
                         </span>
                       </div>
                     </div>

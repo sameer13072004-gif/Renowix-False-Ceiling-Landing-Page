@@ -3,7 +3,7 @@ import { Calculator, ArrowRight, ArrowLeft, Ruler, Check, CheckCircle2, ChevronR
 import { CEILING_TYPES, NOIDA_LOCATIONS } from "../constants";
 
 interface EstimatorQuizProps {
-  onOpenCallbackWithData: (type: string, estimatedBudget: string) => void;
+  onOpenCallbackWithData: (type: string, estimatedBudget: string, dimensions?: string) => void;
 }
 
 export default function EstimatorQuiz({ onOpenCallbackWithData }: EstimatorQuizProps) {
@@ -64,7 +64,7 @@ export default function EstimatorQuiz({ onOpenCallbackWithData }: EstimatorQuizP
   };
 
   const handleFinishQuiz = () => {
-    onOpenCallbackWithData(selectedCeilingId, formattedCostRange);
+    onOpenCallbackWithData(selectedCeilingId, formattedCostRange, String(customArea));
   };
 
   return (
