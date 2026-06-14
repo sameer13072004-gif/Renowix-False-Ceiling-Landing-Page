@@ -23,7 +23,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const isGet = req.method === "GET";
 
   try {
-    const { name = "Diagnostic Test User", phone = "9999999999", amount = 199 } = isGet ? req.query : (req.body || {});
+    const bodyArgs = isGet ? req.query : (req.body || {});
+    const { 
+      name = "Diagnostic Test User", 
+      phone = "9999999999", 
+      sector = "Noida Sector 150", 
+      societyDetails = "Mahagun Moderne, Flat 20",
+      preferredTime = "Morning (9 AM - 12 PM)",
+      intentTimeline = "Immediate",
+      dimensions = "120",
+      budgetRange = "Estimated ceiling: ₹1 Lakh to ₹2.5 Lakh",
+      ceilingStyle = "Gypsum Style",
+      designNotes = ""
+    } = bodyArgs;
+    const amount = bodyArgs.amount || 199;
 
     // Fetch PhonePe merchant credentials securely from system environment variables
     const merchantId = process.env.PHONEPE_MERCHANT_ID; 
@@ -58,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const TEMPORARY_BYPASS_FOR_SHEET = true;
 
     if (TEMPORARY_BYPASS_FOR_SHEET) {
-      const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyArx_gcLfAb9R0zu5uPQuaNfYqM_fL2VXPdNss99J_p8vCMAr7dTQwtSvxhGKNPpEzKg/exec";
+      const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwgxqFR73WfXLJ91hzX4IeXXij12hQ_093waSJIbu3qwiSJUPn1hzngrj3z75fDaWVltQ/exec";
       try {
         await fetch(GOOGLE_SHEETS_URL, {
           method: "POST",
@@ -68,8 +81,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           body: JSON.stringify({
             name,
             phone,
-            sector: isGet ? "Bypass Link Diagnostic" : "Direct Serverless Post",
-            dimensions: "120"
+            sector: isGet ? "Bypass Link Diagnostic" : sector,
+            societyDetails,
+            preferredTime,
+            intentTimeline,
+            dimensions,
+            budgetRange,
+            ceilingStyle,
+            designNotes
           })
         });
       } catch (e) {

@@ -41,6 +41,7 @@ export default function CallbackFormModal({
 }: CallbackFormModalProps) {
   // Modal flow state
   const [flowStep, setFlowStep] = useState<ModalFlowStep>(initialStep);
+  const [submissionId, setSubmissionId] = useState<number>(0);
 
   // Sync flowStep and other inputs when modal opens
   useEffect(() => {
@@ -52,6 +53,7 @@ export default function CallbackFormModal({
         ceilingTypeOfInterest: initialType || "gypsum",
         dimensions: initialDimensions || "120"
       }));
+      setSubmissionId(Math.floor(Math.random() * 89999 + 10000));
     }
   }, [isOpen, initialStep, initialType, initialBudget, initialDimensions]);
 
@@ -148,13 +150,26 @@ export default function CallbackFormModal({
       // ----------------------------------------------------
       // To bypass active billing integration issues, we post directly
       // to the provided Google Sheets macro Web App using the exact schema.
-      const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyArx_gcLfAb9R0zu5uPQuaNfYqM_fL2VXPdNss99J_p8vCMAr7dTQwtSvxhGKNPpEzKg/exec";
+      const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwgxqFR73WfXLJ91hzX4IeXXij12hQ_093waSJIbu3qwiSJUPn1hzngrj3z75fDaWVltQ/exec";
       
+      const styleMap: Record<string, string> = {
+        gypsum: "Gypsum Style",
+        pop: "POP Custom",
+        pvc: "PVC Wood",
+        grid: "Modular Grid"
+      };
+
       const payload = {
         name: formData.name,
         phone: formData.phone,
-        sector: formData.customSector ? `${formData.location}, ${formData.customSector}` : formData.location,
-        dimensions: formData.dimensions || "120"
+        sector: formData.location || "Noida Sector 150",
+        societyDetails: formData.customSector || "",
+        preferredTime: formData.siteAuditTime || "Morning (9 AM - 12 PM)",
+        intentTimeline: formData.timeline || "Immediate",
+        dimensions: formData.dimensions || "120",
+        budgetRange: formData.budget ? `Estimated ceiling: ${formData.budget}` : "Estimated ceiling: ₹1 Lakh to ₹2.5 Lakh",
+        ceilingStyle: styleMap[formData.ceilingTypeOfInterest] || formData.ceilingTypeOfInterest || "Gypsum Style",
+        designNotes: formData.notes || ""
       };
 
       // Direct POST with content-type text/plain to circumvent CORS preflight locks in Google macro engines
@@ -609,11 +624,11 @@ export default function CallbackFormModal({
                               {isConnectingGateway ? (
                                 <>
                                   <div className="mr-1.5 h-4 w-4 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
-                                  <span>Connecting Secure PhonePe Gateway...</span>
+                                  <span>Submitting Audit Details...</span>
                                 </>
                               ) : (
                                 <>
-                                  Tech led Audit Booking @ ₹199 <ArrowRight className="h-4.5 w-4.5" />
+                                  Schedule Technical Site Audit <ArrowRight className="h-4.5 w-4.5" />
                                 </>
                               )}
                             </button>
@@ -889,7 +904,7 @@ export default function CallbackFormModal({
                     <div className="bg-slate-950/60 border border-white/5 rounded-2xl p-4 text-left text-xs space-y-2.5 max-w-sm mx-auto font-mono">
                       <div className="flex justify-between border-b border-white/5 pb-2">
                         <span className="text-slate-450 text-slate-400">Submission ID:</span>
-                        <span className="font-bold text-slate-200">RX-NMT-{Math.floor(Math.random() * 89999 + 10000)}</span>
+                        <span className="font-bold text-slate-200">RX-NMT-{submissionId}</span>
                       </div>
                       <div className="flex justify-between border-b border-white/5 pb-2">
                         <span className="text-slate-450 text-slate-400">Status:</span>
