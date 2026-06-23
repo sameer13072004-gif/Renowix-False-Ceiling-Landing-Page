@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       societyDetails = "Mahagun Moderne, Flat 20",
       preferredTime = "Morning (9 AM - 12 PM)",
       intentTimeline = "Immediate",
-      dimensions = "120",
+      dimensions = "500",
       budgetRange = "Estimated ceiling: ₹1 Lakh to ₹2.5 Lakh",
       ceilingStyle = "Gypsum Style",
       designNotes = ""
@@ -71,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const TEMPORARY_BYPASS_FOR_SHEET = true;
 
     if (TEMPORARY_BYPASS_FOR_SHEET) {
-      const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwgxqFR73WfXLJ91hzX4IeXXij12hQ_093waSJIbu3qwiSJUPn1hzngrj3z75fDaWVltQ/exec";
+      const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyP_0akm-Uq4Af0J7ifFr6DcDdMRG8rOir59SsXHuNISqc_cdFVyGL-AeXdczvXgLhKSg/exec";
       try {
         await fetch(GOOGLE_SHEETS_URL, {
           method: "POST",
@@ -110,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       return res.status(200).json({
         success: true,
-        redirectUrl: `${DOMAIN}/false-ceiling?status=success`,
+        redirectUrl: "https://renowix.in/thank-you-page/",
         transactionId: "RX_BYPASS_" + Date.now(),
         message: "Details Received Successfully (Bypassed securely to Sheets)"
       });

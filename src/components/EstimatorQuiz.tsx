@@ -12,9 +12,9 @@ export default function EstimatorQuiz({ onOpenCallbackWithData }: EstimatorQuizP
   const [selectedCeilingId, setSelectedCeilingId] = useState<string>("gypsum");
   
   // Dimensions
-  const [roomLength, setRoomLength] = useState<number>(12);
-  const [roomWidth, setRoomWidth] = useState<number>(10);
-  const [customArea, setCustomArea] = useState<number>(120);
+  const [roomLength, setRoomLength] = useState<number>(25);
+  const [roomWidth, setRoomWidth] = useState<number>(20);
+  const [customArea, setCustomArea] = useState<number>(500);
   const [isCustomArea, setIsCustomArea] = useState<boolean>(false);
   
   // Location

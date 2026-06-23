@@ -33,8 +33,8 @@ import { FalseCeilingType } from "./types";
 export default function App() {
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState<boolean>(false);
   const [modalPreference, setModalPreference] = useState<string>("gypsum");
-  const [modalBudget, setModalBudget] = useState<string>("₹25,000 - ₹50,000");
-  const [modalDimensions, setModalDimensions] = useState<string>("120");
+  const [modalBudget, setModalBudget] = useState<string>("₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)");
+  const [modalDimensions, setModalDimensions] = useState<string>("500");
   const [modalStep, setModalStep] = useState<"form" | "phonepe_checkout" | "success">("form");
 
   // Read URL query parameters to handle returned checkout callbacks from PhonePe
@@ -112,7 +112,7 @@ export default function App() {
 
   const activeCeilingItem = CEILING_TYPES.find((c) => c.id === activeCeilingId) || CEILING_TYPES[0];
 
-  const handleOpenCallback = (ceilingId: string = "gypsum", budgetRange: string = "₹25,000 - ₹50,000", dimensions: string = "120") => {
+  const handleOpenCallback = (ceilingId: string = "gypsum", budgetRange: string = "₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)", dimensions: string = "500") => {
     setModalPreference(ceilingId);
     setModalBudget(budgetRange);
     setModalDimensions(dimensions);
@@ -551,7 +551,7 @@ export default function App() {
 
           {/* Render Quiz */}
           <EstimatorQuiz 
-            onOpenCallbackWithData={(type, budget, dims) => handleOpenCallback(type, budget, dims || "120")} 
+            onOpenCallbackWithData={(type, budget, dims) => handleOpenCallback(type, budget, dims || "500")} 
           />
         </div>
       </section>

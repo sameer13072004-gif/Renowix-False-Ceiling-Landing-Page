@@ -37,7 +37,7 @@ export default function CallbackFormModal({
   initialType = "",
   initialBudget = "₹1 Lakh to ₹2.5 Lakh (Premium Ceiling Upgrades)",
   initialStep = "form",
-  initialDimensions = "120"
+  initialDimensions = "500"
 }: CallbackFormModalProps) {
   // Modal flow state
   const [flowStep, setFlowStep] = useState<ModalFlowStep>(initialStep);
@@ -51,7 +51,7 @@ export default function CallbackFormModal({
         ...prev,
         budget: initialBudget,
         ceilingTypeOfInterest: initialType || "gypsum",
-        dimensions: initialDimensions || "120"
+        dimensions: initialDimensions || "500"
       }));
       setSubmissionId(Math.floor(Math.random() * 89999 + 10000));
     }
@@ -86,7 +86,7 @@ export default function CallbackFormModal({
     ceilingTypeOfInterest: initialType || "gypsum",
     notes: "",
     siteAuditTime: "Morning (9 AM - 12 PM)", // Site Audit Time
-    dimensions: initialDimensions || "120"
+    dimensions: initialDimensions || "500"
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof CallbackRequest, string>>>({});
@@ -150,7 +150,7 @@ export default function CallbackFormModal({
       // ----------------------------------------------------
       // To bypass active billing integration issues, we post directly
       // to the provided Google Sheets macro Web App using the exact schema.
-      const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwgxqFR73WfXLJ91hzX4IeXXij12hQ_093waSJIbu3qwiSJUPn1hzngrj3z75fDaWVltQ/exec";
+      const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyP_0akm-Uq4Af0J7ifFr6DcDdMRG8rOir59SsXHuNISqc_cdFVyGL-AeXdczvXgLhKSg/exec";
       
       const styleMap: Record<string, string> = {
         gypsum: "Gypsum Style",
@@ -166,7 +166,7 @@ export default function CallbackFormModal({
         societyDetails: formData.customSector || "",
         preferredTime: formData.siteAuditTime || "Morning (9 AM - 12 PM)",
         intentTimeline: formData.timeline || "Immediate",
-        dimensions: formData.dimensions || "120",
+        dimensions: formData.dimensions || "500",
         budgetRange: formData.budget ? `Estimated ceiling: ${formData.budget}` : "Estimated ceiling: ₹1 Lakh to ₹2.5 Lakh",
         ceilingStyle: styleMap[formData.ceilingTypeOfInterest] || formData.ceilingTypeOfInterest || "Gypsum Style",
         designNotes: formData.notes || ""
@@ -189,8 +189,8 @@ export default function CallbackFormModal({
         timestamp: Date.now()
       }));
 
-      // Directly transition step state to success
-      setFlowStep("success");
+      // Redirect to the thank you page for conversion tracking
+      window.location.href = "https://renowix.in/thank-you-page/";
 
       /*
       // ========================================================
