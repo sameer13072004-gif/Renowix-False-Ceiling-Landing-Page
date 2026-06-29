@@ -152,24 +152,21 @@ export default function CallbackFormModal({
       // to the provided Google Sheets macro Web App using the exact schema.
       const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyP_0akm-Uq4Af0J7ifFr6DcDdMRG8rOir59SsXHuNISqc_cdFVyGL-AeXdczvXgLhKSg/exec";
       
-      const styleMap: Record<string, string> = {
-        gypsum: "Gypsum Style",
-        pop: "POP Custom",
-        pvc: "PVC Wood",
-        grid: "Modular Grid"
+      const timelineMap: Record<string, string> = {
+        immediate: "Immediate (Within 7-15 Days)",
+        next_30_days: "Next 30 Days (Within 1 Month)",
+        planning_phase: "Planning Phase (30+ Days)"
       };
 
       const payload = {
         name: formData.name,
         phone: formData.phone,
-        sector: formData.location || "Noida Sector 150",
-        societyDetails: formData.customSector || "",
-        preferredTime: formData.siteAuditTime || "Morning (9 AM - 12 PM)",
-        intentTimeline: formData.timeline || "Immediate",
-        dimensions: formData.dimensions || "500",
-        budgetRange: formData.budget ? `Estimated ceiling: ${formData.budget}` : "Estimated ceiling: ₹1 Lakh to ₹2.5 Lakh",
-        ceilingStyle: styleMap[formData.ceilingTypeOfInterest] || formData.ceilingTypeOfInterest || "Gypsum Style",
-        designNotes: formData.notes || ""
+        sector: formData.location || "",
+        society: formData.customSector || "",
+        preferred_time: formData.siteAuditTime || "Morning (9 AM - 12 PM)",
+        timeline: timelineMap[formData.timeline] || formData.timeline || "Immediate",
+        area: formData.dimensions || "500",
+        budget: formData.budget || "₹1 Lakh to ₹2.5 Lakh (Premium Upgrades)"
       };
 
       // Direct POST with content-type text/plain to circumvent CORS preflight locks in Google macro engines
@@ -189,8 +186,23 @@ export default function CallbackFormModal({
         timestamp: Date.now()
       }));
 
-      // Redirect to the thank you page for conversion tracking
-      window.location.href = "https://renowix.in/thank-you-page/";
+      // Redirect to the thank you page for conversion tracking with robust iframe fallbacks
+      try {
+        if (window.top && window.top !== window.self) {
+          window.top.location.href = "https://renowix.in/thank-you-page/";
+        } else {
+          window.location.href = "https://renowix.in/thank-you-page/";
+        }
+      } catch (error) {
+        console.warn("Iframe parent navigation restricted, attempting standard location update:", error);
+        try {
+          window.location.href = "https://renowix.in/thank-you-page/";
+        } catch (innerError) {
+          console.error("Navigation failed", innerError);
+          // Fallback UI update in case navigation is completely blocked by iframe sandbox
+          setFlowStep("success");
+        }
+      }
 
       /*
       // ========================================================

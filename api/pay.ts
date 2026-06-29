@@ -28,13 +28,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name = "Diagnostic Test User", 
       phone = "9999999999", 
       sector = "Noida Sector 150", 
-      societyDetails = "Mahagun Moderne, Flat 20",
-      preferredTime = "Morning (9 AM - 12 PM)",
-      intentTimeline = "Immediate",
-      dimensions = "500",
-      budgetRange = "Estimated ceiling: ₹1 Lakh to ₹2.5 Lakh",
-      ceilingStyle = "Gypsum Style",
-      designNotes = ""
+      society = "Mahagun Moderne, Flat 20",
+      preferred_time = "Morning (9 AM - 12 PM)",
+      timeline = "Immediate",
+      area = "500",
+      budget = "₹1 Lakh to ₹2.5 Lakh"
     } = bodyArgs;
     const amount = bodyArgs.amount || 199;
 
@@ -82,13 +80,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             name,
             phone,
             sector: isGet ? "Bypass Link Diagnostic" : sector,
-            societyDetails,
-            preferredTime,
-            intentTimeline,
-            dimensions,
-            budgetRange,
-            ceilingStyle,
-            designNotes
+            society,
+            preferred_time,
+            timeline,
+            area,
+            budget
           })
         });
       } catch (e) {
